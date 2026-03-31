@@ -1,0 +1,22 @@
+!SESSION 2026-03-31 10:49:36.857 -----------------------------------------------
+eclipse.buildId=Version 2.1.1
+java.version=21.0.9
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=de_DE
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-03-31 10:50:08.153
+!MESSAGE Log4j2 initialized with config file C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-03-31 10:50:16.644
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY com.st.stm32cube.ide.mpu.remote.serial 1 1 2026-03-31 10:50:17.886
+!MESSAGE Executed PowerShell command powershell.exe -Command "Get-CimInstance -ClassName Win32_SerialPort | Select-Object -ExpandProperty DeviceID":
+
+
+!ENTRY com.st.stm32cube.ide.mpu.remote.serial 1 1 2026-03-31 10:50:17.888
+!MESSAGE port: 
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-03-31 11:01:34.866
+!MESSAGE Indexed 'PES_IoMT' (3 sources, 53 headers) in 0,908 sec: 1.954 declarations; 2.864 references; 0 unresolved inclusions; 2 syntax errors; 2 unresolved names (0,041 %)
