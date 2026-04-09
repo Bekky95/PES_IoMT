@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextDatabase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="texts.xsd" Version="4.26.1">
+  <Languages>
+    <Language Id="GB" />
+  </Languages>
+  <Texts>
+    <TextGroup Id="Group1" />
+    <TextGroup Id="Unsorted">
+      <Text Id="__SingleUse_BR2B" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">&lt;&gt;</Translation>
+      </Text>
+      <Text Id="__SingleUse_NV95" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">PulsOx</Translation>
+      </Text>
+      <Text Id="__SingleUse_F7SV" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EKG</Translation>
+      </Text>
+      <Text Id="__SingleUse_8EED" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EEG</Translation>
+      </Text>
+      <Text Id="__SingleUse_ZZA1" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EMG</Translation>
+      </Text>
+    </TextGroup>
+  </Texts>
+  <Typographies>
+    <Typography Id="Default" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WidgetWildcardCharacters="0123456789 :APM" />
+    <Typography Id="Large" Font="verdana.ttf" Size="40" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
+    <Typography Id="Small" Font="verdana.ttf" Size="10" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
+  </Typographies>
+</TextDatabase>
