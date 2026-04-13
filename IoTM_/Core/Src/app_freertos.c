@@ -19,12 +19,26 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
+#include "SensorHandler/SensorHandlerConfig.h"
 #include "task.h"
 #include "main.h"
 #include "cmsis_os2.h"
+#include "queue.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+extern ADC_HandleTypeDef hadc1;
+extern I2C_HandleTypeDef hi2c1;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void SensorHandler_Start(SensorHandlerConfig* config, const osThreadAttr_t* attr);
+extern const QueueHandle_t getSensorQueue(void);
+#ifdef __cplusplus
+}
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +58,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+static QueueHandle_t uiQueue = NULL;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -60,6 +74,13 @@ const osThreadAttr_t GUI_Task_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
+/* Definitions for tSensorHandler */
+osThreadId_t tSensorHandlerHandle;
+const osThreadAttr_t tSensorHandler_attributes = {
+  .name = "tSensorHandler",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -68,6 +89,7 @@ extern portBASE_TYPE IdleTaskHook(void* p);
 
 void StartDefaultTask(void *argument);
 extern void TouchGFX_Task(void *argument);
+void fSensorHandlerEntry(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -115,12 +137,26 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  uiQueue = xQueueCreate(1,sizeof(SensorData));
+
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of GUI_Task */
   GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
+
+  SensorHandlerConfig config = {
+      .hadc = &hadc1,
+      .adcChannelCount = 3,
+      .hi2c = NULL,
+      .i2cAddress = 0x48,
+      .i2cReadBytes = 2,
+      .loopPeriodMs = 20,
+      .uiQueue = uiQueue
+  };
+
+  SensorHandler_Start(&config, &tSensorHandler_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -151,6 +187,8 @@ void StartDefaultTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+QueueHandle_t getSensorQueue(void) {
+	return uiQueue;
+}
 /* USER CODE END Application */
 

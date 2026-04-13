@@ -16,3 +16,7 @@ void UIPresenter::deactivate()
 {
 
 }
+void UIPresenter::onSensorUpdated(const SensorData& data) {
+	//TODO: update screen with new data
+
+}

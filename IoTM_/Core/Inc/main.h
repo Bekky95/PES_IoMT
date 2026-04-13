@@ -66,8 +66,6 @@ void Error_Handler(void);
 #define LCD_BL_CTRL_GPIO_Port GPIOE
 #define USER_BUTTON_Pin GPIO_PIN_13
 #define USER_BUTTON_GPIO_Port GPIOC
-#define VSYNC_FREQ_Pin GPIO_PIN_0
-#define VSYNC_FREQ_GPIO_Port GPIOC
 #define RENDER_TIME_Pin GPIO_PIN_10
 #define RENDER_TIME_GPIO_Port GPIOC
 #define FRAME_RATE_Pin GPIO_PIN_11

@@ -25,6 +25,8 @@ public:
      */
     virtual void deactivate();
 
+    void onSensorUpdated(const SensorData& data) override;
+
     virtual ~UIPresenter() {}
 
 private:

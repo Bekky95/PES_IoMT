@@ -37,5 +37,4 @@ MDK-ARM/*vguix.*
 
 # CMake
 build/*
-
-*.metadata
+.metadata/*
