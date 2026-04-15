@@ -148,7 +148,7 @@ void MX_FREERTOS_Init(void) {
 
   SensorHandlerConfig config = {
       .hadc = &hadc1,
-      .adcChannelCount = 3,
+      .adcChannelCount = 1,
       .hi2c = NULL,
       .i2cAddress = 0x48,
       .i2cReadBytes = 2,

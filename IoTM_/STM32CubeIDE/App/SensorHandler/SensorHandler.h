@@ -8,7 +8,7 @@
 #ifndef APP_SENSORHANDLER_SENSORHANDLER_H_
 #define APP_SENSORHANDLER_SENSORHANDLER_H_
 
-#include "../../STM32CubeIDE/App/adc/adc.h"
+#include "App/adc/adc.h"
 #include "SensorHandlerConfig.h"
 #include "cmsis_os2.h"
 #include "main.h"
@@ -38,8 +38,9 @@ private:
 	bool readI2C();
 
 	SensorHandlerConfig mConfig;
+	const AdcDma*		mAdc;
+	AdcChannel* 		mAdcChannel1;
 
-	SemaphoreHandle_t	mAdcMutex 					 = nullptr;
 
 	QueueHandle_t		mUIQueue					 = nullptr;
 

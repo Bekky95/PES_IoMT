@@ -16,8 +16,12 @@ extern "C" void SensorHandler_Start(SensorHandlerConfig* config, const osThreadA
 
 // Constructor / Destructor
 
-SensorHandler::SensorHandler(const SensorHandlerConfig* config)
-{}
+SensorHandler::SensorHandler(const SensorHandlerConfig* config) {
+	if(config->hadc) {
+		mAdc = new AdcDma(config->hadc, config->adcChannelCount);
+		mAdcChannel1 = mAdc->registerChannel(0);
+	}
+}
 
 SensorHandler::~SensorHandler() {
     this->stop();
@@ -28,16 +32,15 @@ void SensorHandler::stop() {
 }
 // Public API
 void SensorHandler::start(SensorHandlerConfig* config, const osThreadAttr_t* attr) {
-	  /* creation of tSensorHandler */
 
 
 	  static SensorHandler sSensorHandler(config);
 	  //TODO: Clean this up
 	  osThreadId_t tSensorHandlerHandle;
-
 	  tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry,
 	                                     &sSensorHandler,
 	                                     attr);
+
 };
 
 void SensorHandler::taskEntry(void* pv) {
@@ -48,7 +51,6 @@ void SensorHandler::taskLoop() {
 
 	//TODO: fix here, read data from sensors and send to display/mqtt
     while (mRunning) {
-        SensorData snapshot = {};
 
         // ── Pace the loop ────────────────────────────────────────────────────
         vTaskDelay(pdMS_TO_TICKS(mConfig.loopPeriodMs));
