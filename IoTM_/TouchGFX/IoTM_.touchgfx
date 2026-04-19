@@ -109,13 +109,12 @@
             "Width": 800,
             "Height": 430,
             "DataSeed": 1256137273,
-            "NumberOfValues": 1000,
-            "MaxY": 100.0,
-            "Precision": "1",
-            "LastIndex": 999,
+            "NumberOfValues": 100,
+            "MaxY": 5.0,
+            "Precision": "0.0001",
+            "LastIndex": 99,
             "XAxisScale": 1.0,
-            "InsertRandomValues": true,
-            "GraphType": "GraphWrapClear",
+            "GraphType": "GraphScroll",
             "GraphDrawers": [
               {
                 "Type": "LineDrawer",
@@ -144,9 +143,33 @@
             "DisplayLeadingZeroForHourIndicator": true,
             "InitialHour": 10,
             "InitialMinute": 10
+          },
+          {
+            "Type": "TextArea",
+            "Name": "tempADCVal",
+            "X": 700,
+            "Y": 430,
+            "Width": 11,
+            "Height": 40,
+            "TextId": "__SingleUse_H50F",
+            "TextRotation": "0",
+            "AutoSize": true,
+            "Wildcard1": {}
           }
         ],
-        "Interactions": []
+        "Interactions": [
+          {
+            "InteractionName": "Interaction1",
+            "Trigger": {
+              "Type": "TriggerOnEveryTick",
+              "TickCount": 1
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "getADCVal"
+            }
+          }
+        ]
       }
     ],
     "CustomContainerDefinitions": [],

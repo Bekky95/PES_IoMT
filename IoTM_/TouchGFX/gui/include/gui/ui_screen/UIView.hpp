@@ -11,6 +11,7 @@ public:
     virtual ~UIView() {}
     virtual void setupScreen();
     virtual void tearDownScreen();
+    virtual void updateGraph(float val);
 protected:
 };
 

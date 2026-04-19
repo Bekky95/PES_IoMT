@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 typedef struct {
-	uint16_t adc[3]; // one value per ADC Sensor
+	float adc[3]; // one value per ADC Sensor
 	uint16_t pulsOxValue;			// PulsOx value read per i2c
 	bool	 pulsOxValid;			// false if last i2c read failed
 }SensorData;
