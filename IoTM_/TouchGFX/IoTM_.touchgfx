@@ -10,6 +10,7 @@
             "Name": "image1",
             "Width": 800,
             "Height": 480,
+            "Visible": false,
             "RelativeFilename": "__generated\\glass_theme_images_backgrounds_800x480_floating_rings.png"
           },
           {
@@ -109,12 +110,13 @@
             "Width": 800,
             "Height": 430,
             "DataSeed": 1256137273,
-            "NumberOfValues": 100,
-            "MaxY": 5.0,
+            "NumberOfValues": 50,
+            "MaxY": 3.5,
+            "MinY": -0.5,
             "Precision": "0.0001",
-            "LastIndex": 99,
+            "LastIndex": 49,
             "XAxisScale": 1.0,
-            "GraphType": "GraphScroll",
+            "GraphType": "GraphWrapClear",
             "GraphDrawers": [
               {
                 "Type": "LineDrawer",
@@ -122,10 +124,30 @@
                 "FileNameImage": "",
                 "Color": {
                   "Red": 255,
-                  "Green": 255
+                  "Green": 17
                 }
               }
-            ]
+            ],
+            "XAxisGrid": {
+              "Type": "GraphGrid",
+              "Color": {
+                "Red": 20,
+                "Green": 151,
+                "Blue": 197
+              },
+              "Interval": 10.0,
+              "LineWidth": 1
+            },
+            "YAxisGrid": {
+              "Type": "GraphGrid",
+              "Color": {
+                "Red": 20,
+                "Green": 151,
+                "Blue": 197
+              },
+              "Interval": 1.0,
+              "LineWidth": 1
+            }
           },
           {
             "Type": "DigitalClock",

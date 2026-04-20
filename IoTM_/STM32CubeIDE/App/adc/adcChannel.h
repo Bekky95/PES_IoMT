@@ -10,7 +10,7 @@
 #include "main.h"
 #include <stdint.h>
 
-static const float VREF = 5.0f;
+static const float VREF = 3.3f;
 
 class AdcDma;
 

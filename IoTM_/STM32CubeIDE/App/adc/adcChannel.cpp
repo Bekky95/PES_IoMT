@@ -17,7 +17,7 @@ uint32_t AdcChannel::getValue() {
 }
 float AdcChannel::getVoltValue() {
 	configASSERT(mAdc != nullptr);
-	float max = 16384.0f;
+	float max = 4096.0f;
 	uint16_t rawAdc = mAdc->getChannelValue(mIndex);
 	float voltage = 0;
 	voltage = (rawAdc / max) * VREF;
