@@ -42,7 +42,6 @@ SensorHandler& SensorHandler::instance() {
 }
 // Public API
 void SensorHandler::start(SensorHandlerConfig* config, const osThreadAttr_t* attr) {
-	  /* creation of tSensorHandler */
 
 	  if(sInstance != nullptr) {
 		  return;
@@ -66,6 +65,7 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
     }
     mflags = osEventFlagsNew(nullptr);
     mUIQueue = mConfig.uiQueue;
+    mUiSem = mConfig.uiSem;
 }
 
 void SensorHandler::notifyAdc(ADC_HandleTypeDef* hadc)
@@ -77,8 +77,12 @@ void SensorHandler::notifyAdc(ADC_HandleTypeDef* hadc)
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
-QueueHandle_t SensorHandler::getUIQueue(void) {
+const QueueHandle_t SensorHandler::getUIQueue(void) const{
 	return mUIQueue;
+}
+
+const SemaphoreHandle_t SensorHandler::getUiSemaphore(void) const {
+	return mUiSem;
 }
 
 void SensorHandler::taskEntry(void* pv) {
@@ -104,7 +108,12 @@ void SensorHandler::taskLoop() {
 
     	data.adc[0] = mAdcChannel1->getVoltValue();
 
-    	xQueueSend(mUIQueue,&data,0);
+    	// Get semahpore and write data to the UI Queue
+    	if(xSemaphoreTake(mUiSem, pdMS_TO_TICKS(1)) == pdTRUE) {
+    		xQueueSend(mUIQueue,&data,0);
+    		xSemaphoreGive(mUiSem);
+    	}
+
 
     }
     // terminate task if mRunning is set to false

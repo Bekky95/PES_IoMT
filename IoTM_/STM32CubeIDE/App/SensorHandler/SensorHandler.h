@@ -8,7 +8,7 @@
 #ifndef APP_SENSORHANDLER_SENSORHANDLER_H_
 #define APP_SENSORHANDLER_SENSORHANDLER_H_
 
-#include "../../STM32CubeIDE/App/adc/adc.h"
+#include "App/adc/adc.h"
 #include "SensorHandlerConfig.h"
 #include "cmsis_os2.h"
 #include "main.h"
@@ -31,7 +31,8 @@ public:
 	static void start(SensorHandlerConfig* config, const osThreadAttr_t* attr);
 	void stop();
 	void notifyAdc(ADC_HandleTypeDef* hadc);
-	QueueHandle_t getUIQueue(void);
+	const QueueHandle_t getUIQueue(void) const;
+	const SemaphoreHandle_t getUiSemaphore(void) const;
 
 private:
 	SensorHandler() = default;
@@ -56,6 +57,7 @@ private:
 	QueueHandle_t		mUIQueue = nullptr	;
 	uint8_t				mI2cBuf[4]					 = {};
 	TaskHandle_t		mTaskHandle;
+	SemaphoreHandle_t	mUiSem = nullptr;
 	bool				mRunning = false;
 };
 

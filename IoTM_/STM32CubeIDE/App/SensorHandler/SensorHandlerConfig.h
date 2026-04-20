@@ -2,6 +2,7 @@
 
 #include "main.h"
 #include "queue.h"
+#include "semphr.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -21,6 +22,7 @@ typedef struct  {
 	uint16_t			i2cReadBytes;
 	uint32_t			loopPeriodMs;
 	QueueHandle_t   	uiQueue;
+	SemaphoreHandle_t     uiSem;
 } SensorHandlerConfig;
 
 #ifdef __cplusplus

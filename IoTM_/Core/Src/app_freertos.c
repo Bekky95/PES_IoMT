@@ -80,6 +80,11 @@ const osThreadAttr_t GUI_Task_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
+/* Definitions for UIQueueSem */
+osSemaphoreId_t UIQueueSemHandle;
+const osSemaphoreAttr_t UIQueueSem_attributes = {
+  .name = "UIQueueSem"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -124,6 +129,8 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+  /* creation of UIQueueSem */
+  UIQueueSemHandle = osSemaphoreNew(1, 1, &UIQueueSem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -153,7 +160,8 @@ void MX_FREERTOS_Init(void) {
         .i2cAddress = 0x48,
         .i2cReadBytes = 2,
         .loopPeriodMs = 20,
-        .uiQueue = uiQueue
+        .uiQueue = uiQueue,
+		.uiSem = UIQueueSemHandle,
     };
 
     SensorHandler_Start(&config, &tSensorHandler_attributes);

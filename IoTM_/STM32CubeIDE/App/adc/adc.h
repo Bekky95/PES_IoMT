@@ -23,11 +23,15 @@ class AdcDma {
 public:
 	friend class AdcChannel;
 
-	explicit AdcDma(ADC_HandleTypeDef& hadc, uint8_t numChannels);
-	HAL_StatusTypeDef init();
+	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
 
-	const uint16_t* getValues() const;
-	uint16_t getChannelValue(uint8_t ch);
+	HAL_StatusTypeDef start();
+	HAL_StatusTypeDef stop();
+
+	const uint32_t* getValues();
+	uint32_t getChannelValue(uint8_t ch) const;
+
+	AdcChannel* registerChannel(uint8_t ch) const;
 
 private:
 	ADC_HandleTypeDef*	mHadc;
