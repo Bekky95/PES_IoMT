@@ -23,7 +23,9 @@
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
-extern DMA_HandleTypeDef handle_GPDMA1_Channel1;
+extern DMA_NodeTypeDef Node_GPDMA1_Channel0;
+
+extern DMA_QListTypeDef List_GPDMA1_Channel0;
 
 extern DMA_HandleTypeDef handle_GPDMA1_Channel0;
 
@@ -91,6 +93,7 @@ void HAL_MspInit(void)
 void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  DMA_NodeConfTypeDef NodeConfig;
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
   if(hadc->Instance==ADC1)
   {
@@ -121,28 +124,56 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
     /* ADC1 DMA Init */
     /* GPDMA1_REQUEST_ADC1 Init */
-    handle_GPDMA1_Channel1.Instance = GPDMA1_Channel1;
-    handle_GPDMA1_Channel1.Init.Request = GPDMA1_REQUEST_ADC1;
-    handle_GPDMA1_Channel1.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
-    handle_GPDMA1_Channel1.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    handle_GPDMA1_Channel1.Init.SrcInc = DMA_SINC_FIXED;
-    handle_GPDMA1_Channel1.Init.DestInc = DMA_DINC_INCREMENTED;
-    handle_GPDMA1_Channel1.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_WORD;
-    handle_GPDMA1_Channel1.Init.DestDataWidth = DMA_DEST_DATAWIDTH_WORD;
-    handle_GPDMA1_Channel1.Init.Priority = DMA_HIGH_PRIORITY;
-    handle_GPDMA1_Channel1.Init.SrcBurstLength = 8;
-    handle_GPDMA1_Channel1.Init.DestBurstLength = 8;
-    handle_GPDMA1_Channel1.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT1;
-    handle_GPDMA1_Channel1.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
-    handle_GPDMA1_Channel1.Init.Mode = DMA_NORMAL;
-    if (HAL_DMA_Init(&handle_GPDMA1_Channel1) != HAL_OK)
+    NodeConfig.NodeType = DMA_GPDMA_LINEAR_NODE;
+    NodeConfig.Init.Request = GPDMA1_REQUEST_ADC1;
+    NodeConfig.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
+    NodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    NodeConfig.Init.SrcInc = DMA_SINC_FIXED;
+    NodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
+    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.SrcBurstLength = 8;
+    NodeConfig.Init.DestBurstLength = 8;
+    NodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1|DMA_DEST_ALLOCATED_PORT0;
+    NodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    NodeConfig.Init.Mode = DMA_NORMAL;
+    NodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
+    NodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
+    NodeConfig.DataHandlingConfig.DataAlignment = DMA_DATA_PACK;
+    if (HAL_DMAEx_List_BuildNode(&NodeConfig, &Node_GPDMA1_Channel0) != HAL_OK)
     {
       Error_Handler();
     }
 
-    __HAL_LINKDMA(hadc, DMA_Handle, handle_GPDMA1_Channel1);
+    if (HAL_DMAEx_List_InsertNode(&List_GPDMA1_Channel0, NULL, &Node_GPDMA1_Channel0) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
-    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel1, DMA_CHANNEL_NPRIV) != HAL_OK)
+    if (HAL_DMAEx_List_SetCircularMode(&List_GPDMA1_Channel0) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    handle_GPDMA1_Channel0.Instance = GPDMA1_Channel0;
+    handle_GPDMA1_Channel0.InitLinkedList.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+    handle_GPDMA1_Channel0.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
+    handle_GPDMA1_Channel0.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
+    handle_GPDMA1_Channel0.InitLinkedList.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+    handle_GPDMA1_Channel0.InitLinkedList.LinkedListMode = DMA_LINKEDLIST_CIRCULAR;
+    if (HAL_DMAEx_List_Init(&handle_GPDMA1_Channel0) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    if (HAL_DMAEx_List_LinkQ(&handle_GPDMA1_Channel0, &List_GPDMA1_Channel0) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    __HAL_LINKDMA(hadc, DMA_Handle, handle_GPDMA1_Channel0);
+
+    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel0, DMA_CHANNEL_NPRIV) != HAL_OK)
     {
       Error_Handler();
     }
@@ -610,7 +641,6 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
   */
 void HAL_JPEG_MspInit(JPEG_HandleTypeDef* hjpeg)
 {
-  DMA_DataHandlingConfTypeDef DataHandlingConfig;
   if(hjpeg->Instance==JPEG)
   {
     /* USER CODE BEGIN JPEG_MspInit 0 */
@@ -618,42 +648,6 @@ void HAL_JPEG_MspInit(JPEG_HandleTypeDef* hjpeg)
     /* USER CODE END JPEG_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_JPEG_CLK_ENABLE();
-
-    /* JPEG DMA Init */
-    /* GPDMA1_REQUEST_JPEG_RX Init */
-    handle_GPDMA1_Channel0.Instance = GPDMA1_Channel0;
-    handle_GPDMA1_Channel0.Init.Request = GPDMA1_REQUEST_JPEG_RX;
-    handle_GPDMA1_Channel0.Init.BlkHWRequest = DMA_BREQ_SINGLE_BURST;
-    handle_GPDMA1_Channel0.Init.Direction = DMA_MEMORY_TO_PERIPH;
-    handle_GPDMA1_Channel0.Init.SrcInc = DMA_SINC_INCREMENTED;
-    handle_GPDMA1_Channel0.Init.DestInc = DMA_DINC_FIXED;
-    handle_GPDMA1_Channel0.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_BYTE;
-    handle_GPDMA1_Channel0.Init.DestDataWidth = DMA_DEST_DATAWIDTH_WORD;
-    handle_GPDMA1_Channel0.Init.Priority = DMA_HIGH_PRIORITY;
-    handle_GPDMA1_Channel0.Init.SrcBurstLength = 8;
-    handle_GPDMA1_Channel0.Init.DestBurstLength = 8;
-    handle_GPDMA1_Channel0.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1|DMA_DEST_ALLOCATED_PORT0;
-    handle_GPDMA1_Channel0.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
-    handle_GPDMA1_Channel0.Init.Mode = DMA_NORMAL;
-    if (HAL_DMA_Init(&handle_GPDMA1_Channel0) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
-    DataHandlingConfig.DataAlignment = DMA_DATA_PACK;
-    if (HAL_DMAEx_ConfigDataHandling(&handle_GPDMA1_Channel0, &DataHandlingConfig) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    __HAL_LINKDMA(hjpeg, hdmain, handle_GPDMA1_Channel0);
-
-    if (HAL_DMA_ConfigChannelAttributes(&handle_GPDMA1_Channel0, DMA_CHANNEL_NPRIV) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
     /* JPEG interrupt Init */
     HAL_NVIC_SetPriority(JPEG_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(JPEG_IRQn);
@@ -680,9 +674,6 @@ void HAL_JPEG_MspDeInit(JPEG_HandleTypeDef* hjpeg)
     /* USER CODE END JPEG_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_JPEG_CLK_DISABLE();
-
-    /* JPEG DMA DeInit */
-    HAL_DMA_DeInit(hjpeg->hdmain);
 
     /* JPEG interrupt DeInit */
     HAL_NVIC_DisableIRQ(JPEG_IRQn);

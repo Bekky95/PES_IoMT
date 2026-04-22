@@ -19,14 +19,13 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
-#include "SensorHandler/SensorHandlerConfig.h"
 #include "task.h"
 #include "main.h"
 #include "cmsis_os2.h"
-#include "queue.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "SensorHandler/SensorHandlerConfig.h"
+#include "queue.h"
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
 
@@ -59,12 +58,19 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 static QueueHandle_t uiQueue = NULL;
+/* Definitions for tSensorHandler */
+osThreadId_t tSensorHandlerHandle;
+const osThreadAttr_t tSensorHandler_attributes = {
+  .name = "tSensorHandler",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow4,
   .stack_size = 128 * 4
 };
 /* Definitions for GUI_Task */
@@ -74,12 +80,10 @@ const osThreadAttr_t GUI_Task_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
-/* Definitions for tSensorHandler */
-osThreadId_t tSensorHandlerHandle;
-const osThreadAttr_t tSensorHandler_attributes = {
-  .name = "tSensorHandler",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+/* Definitions for UIQueueSem */
+osSemaphoreId_t UIQueueSemHandle;
+const osSemaphoreAttr_t UIQueueSem_attributes = {
+  .name = "UIQueueSem"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,7 +93,6 @@ extern portBASE_TYPE IdleTaskHook(void* p);
 
 void StartDefaultTask(void *argument);
 extern void TouchGFX_Task(void *argument);
-void fSensorHandlerEntry(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -126,6 +129,8 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+  /* creation of UIQueueSem */
+  UIQueueSemHandle = osSemaphoreNew(1, 1, &UIQueueSem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -146,20 +151,20 @@ void MX_FREERTOS_Init(void) {
   /* creation of GUI_Task */
   GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
 
-  SensorHandlerConfig config = {
-      .hadc = &hadc1,
-      .adcChannelCount = 3,
-      .hi2c = NULL,
-      .i2cAddress = 0x48,
-      .i2cReadBytes = 2,
-      .loopPeriodMs = 20,
-      .uiQueue = uiQueue
-  };
-
-  SensorHandler_Start(&config, &tSensorHandler_attributes);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+    SensorHandlerConfig config = {
+        .hadc = &hadc1,
+       .adcChannelCount = 1,
+        .hi2c = NULL,
+        .i2cAddress = 0x48,
+        .i2cReadBytes = 2,
+        .loopPeriodMs = 20,
+        .uiQueue = uiQueue,
+		.uiSem = UIQueueSemHandle,
+    };
+
+    SensorHandler_Start(&config, &tSensorHandler_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */

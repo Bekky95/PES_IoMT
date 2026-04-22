@@ -14,23 +14,32 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "adcChannel.h"
+
+// Forward declaration of AdcChannel class
+class AdcChannel;
 
 class AdcDma {
 public:
-	// Static Variables
-	static constexpr uint8_t CHANNEL_COUNT = 3;
+	friend class AdcChannel;
 
-	explicit AdcDma(ADC_HandleTypeDef& hadc, uint8_t numChannels);
-	HAL_StatusTypeDef init();
+	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
 
-	const uint16_t* getValues() const;
-	uint16_t getChannelValue(uint8_t ch);
+	HAL_StatusTypeDef start();
+	HAL_StatusTypeDef stop();
+
+	const uint32_t* getValues();
+	uint32_t getChannelValue(uint8_t ch) const;
+
+	AdcChannel* registerChannel(uint8_t ch) const;
 
 private:
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	uint16_t 			mDmaBuffer[CHANNEL_COUNT];
+	AdcChannel** 	    mAdcChannels;
+	uint32_t* 			mDmaBuffer;
+
 
 
 };

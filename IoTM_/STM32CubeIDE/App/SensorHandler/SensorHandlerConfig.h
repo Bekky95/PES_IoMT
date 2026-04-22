@@ -2,13 +2,14 @@
 
 #include "main.h"
 #include "queue.h"
+#include "semphr.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 typedef struct {
-	uint16_t adc[3]; // one value per ADC Sensor
+	float adc[3]; // one value per ADC Sensor
 	uint16_t pulsOxValue;			// PulsOx value read per i2c
 	bool	 pulsOxValid;			// false if last i2c read failed
 }SensorData;
@@ -21,6 +22,7 @@ typedef struct  {
 	uint16_t			i2cReadBytes;
 	uint32_t			loopPeriodMs;
 	QueueHandle_t   	uiQueue;
+	SemaphoreHandle_t     uiSem;
 } SensorHandlerConfig;
 
 #ifdef __cplusplus

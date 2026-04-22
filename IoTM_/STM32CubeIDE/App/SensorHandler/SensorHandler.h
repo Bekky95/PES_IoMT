@@ -8,7 +8,7 @@
 #ifndef APP_SENSORHANDLER_SENSORHANDLER_H_
 #define APP_SENSORHANDLER_SENSORHANDLER_H_
 
-#include "../../STM32CubeIDE/App/adc/adc.h"
+#include "App/adc/adc.h"
 #include "SensorHandlerConfig.h"
 #include "cmsis_os2.h"
 #include "main.h"
@@ -19,34 +19,46 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+static constexpr uint32_t ADC_HALF = 0x01;
+static constexpr uint32_t ADC_FULL = 0x02;
+
 class SensorHandler {
 public:
 
-	explicit SensorHandler(const SensorHandlerConfig* config);
-	~SensorHandler();
-
-	SensorHandler(const SensorHandler&) = delete;
+	static SensorHandler&	instance();
 	SensorHandler& operator=(const SensorHandler) = delete;
 
 	static void start(SensorHandlerConfig* config, const osThreadAttr_t* attr);
 	void stop();
+	void notifyAdc(ADC_HandleTypeDef* hadc);
+	const QueueHandle_t getUIQueue(void) const;
+	const SemaphoreHandle_t getUiSemaphore(void) const;
 
-	static void taskEntry(void* pv);
 private:
-	void taskLoop();
+	SensorHandler() = default;
+	SensorHandler(const SensorHandler&) = delete;
+	SensorHandler(const SensorHandlerConfig* config);
+	~SensorHandler();
+
+    void init(const SensorHandlerConfig* config);  // called once inside start()
+    static void taskEntry(void* pv);
+    void taskLoop();
+
+
 	void onAdcData(uint8_t channel, const uint16_t* data, uint8_t size);
 	bool readI2C();
 
+	static SensorHandler*	sInstance;
+
 	SensorHandlerConfig mConfig;
-
-	SemaphoreHandle_t	mAdcMutex 					 = nullptr;
-
-	QueueHandle_t		mUIQueue					 = nullptr;
-
+	AdcDma*		mAdc;
+	AdcChannel* 		mAdcChannel1;
+	osEventFlagsId_t	mflags;
+	QueueHandle_t		mUIQueue = nullptr	;
 	uint8_t				mI2cBuf[4]					 = {};
-
-	TaskHandle_t		mTaskHandle				 	 = nullptr;
-	bool				mRunning					 = false;
+	TaskHandle_t		mTaskHandle;
+	SemaphoreHandle_t	mUiSem = nullptr;
+	bool				mRunning = false;
 };
 
 #endif /* APP_SENSORHANDLER_SENSORHANDLER_H_ */
