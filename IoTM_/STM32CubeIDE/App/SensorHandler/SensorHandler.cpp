@@ -63,7 +63,7 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
         mAdc = new AdcDma(config->hadc, config->adcChannelCount);
         mAdcChannel1 = mAdc->registerChannel(0);
     }
-    mflags = osEventFlagsNew(nullptr);
+    //mflags = osEventFlagsNew(nullptr);
     mUIQueue = mConfig.uiQueue;
     mUiSem = mConfig.uiSem;
 }

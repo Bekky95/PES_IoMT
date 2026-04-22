@@ -35,25 +35,33 @@ public:
 	const SemaphoreHandle_t getUiSemaphore(void) const;
 
 private:
+	//Constructors and Destructor:
 	SensorHandler() = default;
 	SensorHandler(const SensorHandler&) = delete;
 	SensorHandler(const SensorHandlerConfig* config);
 	~SensorHandler();
 
+	// Init and Task Stuff:
     void init(const SensorHandlerConfig* config);  // called once inside start()
     static void taskEntry(void* pv);
     void taskLoop();
 
-
+    // Data functions:
 	void onAdcData(uint8_t channel, const uint16_t* data, uint8_t size);
 	bool readI2C();
 
+	// The global Instance
 	static SensorHandler*	sInstance;
 
+	// Hardware Handles:
 	SensorHandlerConfig mConfig;
+
+	// ADC:
+	// TODO: move adc into sensor wrapper classes i.e sEEG(adcChannel1)...
 	AdcDma*		mAdc;
 	AdcChannel* 		mAdcChannel1;
-	osEventFlagsId_t	mflags;
+
+	//osEventFlagsId_t	mflags;
 	QueueHandle_t		mUIQueue = nullptr	;
 	uint8_t				mI2cBuf[4]					 = {};
 	TaskHandle_t		mTaskHandle;
