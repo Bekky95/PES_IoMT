@@ -16,10 +16,12 @@
 #include "semphr.h"
 #include "adcChannel.h"
 
+// Forward declaration of AdcChannel class
+class AdcChannel;
+
 class AdcDma {
 public:
-	// Static Variables
-	static constexpr uint8_t CHANNEL_COUNT = 1;
+	friend class AdcChannel;
 
 	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
 
@@ -35,8 +37,9 @@ private:
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	AdcChannel* 	    mAdcChannels[CHANNEL_COUNT];
-	uint32_t 			mDmaBuffer[CHANNEL_COUNT];
+	AdcChannel** 	    mAdcChannels;
+	uint32_t* 			mDmaBuffer;
+
 
 
 };

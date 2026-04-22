@@ -14,3 +14,11 @@ void UIView::tearDownScreen()
 {
     UIViewBase::tearDownScreen();
 }
+
+void UIView::updateGraph(float val)
+{
+	gData.addDataPoint(val);
+	gData.invalidate();
+
+}
+

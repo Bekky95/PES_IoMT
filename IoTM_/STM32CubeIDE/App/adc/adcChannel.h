@@ -10,12 +10,16 @@
 #include "main.h"
 #include <stdint.h>
 
+static const float VREF = 3.3f;
+
 class AdcDma;
 
 class AdcChannel {
 public:
 	AdcChannel(const AdcDma* adc ,uint8_t index);
-	uint16_t getValue();
+	uint32_t getValue();
+	float getVoltValue();
+
 private:
 	const AdcDma*	mAdc;
 	uint8_t				mIndex;

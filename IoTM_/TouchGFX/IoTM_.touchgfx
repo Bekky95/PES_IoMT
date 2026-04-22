@@ -10,6 +10,7 @@
             "Name": "image1",
             "Width": 800,
             "Height": 480,
+            "Visible": false,
             "RelativeFilename": "__generated\\glass_theme_images_backgrounds_800x480_floating_rings.png"
           },
           {
@@ -109,12 +110,12 @@
             "Width": 800,
             "Height": 430,
             "DataSeed": 1256137273,
-            "NumberOfValues": 1000,
-            "MaxY": 100.0,
-            "Precision": "1",
-            "LastIndex": 999,
+            "NumberOfValues": 50,
+            "MaxY": 3.5,
+            "MinY": -0.5,
+            "Precision": "0.0001",
+            "LastIndex": 49,
             "XAxisScale": 1.0,
-            "InsertRandomValues": true,
             "GraphType": "GraphWrapClear",
             "GraphDrawers": [
               {
@@ -123,10 +124,30 @@
                 "FileNameImage": "",
                 "Color": {
                   "Red": 255,
-                  "Green": 255
+                  "Green": 17
                 }
               }
-            ]
+            ],
+            "XAxisGrid": {
+              "Type": "GraphGrid",
+              "Color": {
+                "Red": 20,
+                "Green": 151,
+                "Blue": 197
+              },
+              "Interval": 10.0,
+              "LineWidth": 1
+            },
+            "YAxisGrid": {
+              "Type": "GraphGrid",
+              "Color": {
+                "Red": 20,
+                "Green": 151,
+                "Blue": 197
+              },
+              "Interval": 1.0,
+              "LineWidth": 1
+            }
           },
           {
             "Type": "DigitalClock",
@@ -144,9 +165,33 @@
             "DisplayLeadingZeroForHourIndicator": true,
             "InitialHour": 10,
             "InitialMinute": 10
+          },
+          {
+            "Type": "TextArea",
+            "Name": "tempADCVal",
+            "X": 700,
+            "Y": 430,
+            "Width": 11,
+            "Height": 40,
+            "TextId": "__SingleUse_H50F",
+            "TextRotation": "0",
+            "AutoSize": true,
+            "Wildcard1": {}
           }
         ],
-        "Interactions": []
+        "Interactions": [
+          {
+            "InteractionName": "Interaction1",
+            "Trigger": {
+              "Type": "TriggerOnEveryTick",
+              "TickCount": 1
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "getADCVal"
+            }
+          }
+        ]
       }
     ],
     "CustomContainerDefinitions": [],
