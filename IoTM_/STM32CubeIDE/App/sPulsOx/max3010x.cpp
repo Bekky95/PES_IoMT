@@ -663,7 +663,7 @@ uint16_t MAX3010x::check(void) {
 //Check for new data but give up after a certain amount of time
 //Returns true if new data was found
 //Returns false if new data was not found
-bool MAX3010x::safeCheck(uint8_t maxTimeToCheck) {
+bool MAX3010x::safeCheck(TickType_t  maxTimeToCheck) {
 	uint32_t markTime = HAL_GetTick();
 
 	while (1) {

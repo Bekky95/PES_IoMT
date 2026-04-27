@@ -8,11 +8,28 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef struct {
-	float adc[3]; // one value per ADC Sensor
-	uint16_t pulsOxValue;			// PulsOx value read per i2c
-	bool	 pulsOxValid;			// false if last i2c read failed
+
+typedef enum {
+	MAX1030x,
+	EMG,
+	EEG,
+	EKG
+} SensorType;
+
+//TODO if needed change this to hold data type + pointer to data to save space
+typedef struct  {
+    SensorType type;
+    uint32_t timestamp_ms;
+
+    union {
+    	uint16_t	EmgData;
+    	uint16_t	EegData;
+    	uint16_t	EkgData;
+    	uint16_t	SpO2Data;
+    	uint16_t	HeartRateData;
+    };
 }SensorData;
+
 
 typedef struct  {
 	ADC_HandleTypeDef* 	hadc;
@@ -24,6 +41,16 @@ typedef struct  {
 	QueueHandle_t   	uiQueue;
 	SemaphoreHandle_t     uiSem;
 } SensorHandlerConfig;
+
+typedef struct {
+    osMessageQueueId_t  queue;
+    I2C_HandleTypeDef*  hi2c;
+}SpO2Config;
+
+typedef struct {
+	osMessageQueueId_t queue;
+	ADC_HandleTypeDef* adc;
+}adcConfig;
 
 #ifdef __cplusplus
 }

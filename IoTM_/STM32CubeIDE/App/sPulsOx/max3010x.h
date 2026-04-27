@@ -9,6 +9,7 @@
 #define APP_SPULSOX_MAX3010X_H_
 #include "main.h"
 #include "cmsis_os2.h"// TODO implement interrupt source so SensorHandler reacts on interrupt and delviers the source back
+#include "FreeRTOS.h"
 enum class InterruptSource {
 	PWR_RDY, ALC_OVF
 };
@@ -22,13 +23,13 @@ public:
 	}
 	HAL_StatusTypeDef init(void);
 	void setup(uint8_t powerLevel = 0x1F, uint8_t sampleAverage = 4,
-			uint8_t ledMode = 3, uint16_t sampleRate = 400,
+			uint8_t ledMode = 7, uint16_t sampleRate = 400,
 			uint16_t pulseWidth = 411, uint16_t adcRange = 4096);
 
 	uint32_t getRed(void); //Returns immediate red value
 	uint32_t getIR(void); //Returns immediate IR value
 	uint32_t getGreen(void); //Returns immediate green value
-	bool safeCheck(uint8_t maxTimeToCheck); //Given a max amount of time, check for new data
+	bool safeCheck(TickType_t  maxTimeToCheck); //Given a max amount of time, check for new data
 
 	// Configuration
 	void softReset();
