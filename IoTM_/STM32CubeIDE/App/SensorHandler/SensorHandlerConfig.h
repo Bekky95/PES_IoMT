@@ -4,6 +4,7 @@
 #include "queue.h"
 #include "semphr.h"
 #include <stdbool.h>
+#include "cmsis_os2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,6 +51,7 @@ typedef struct {
 typedef struct {
 	osMessageQueueId_t queue;
 	ADC_HandleTypeDef* adc;
+	uint8_t		adcChannelCount;
 }adcConfig;
 
 #ifdef __cplusplus

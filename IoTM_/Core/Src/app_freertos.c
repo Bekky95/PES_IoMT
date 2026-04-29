@@ -35,6 +35,13 @@ extern "C" {
 
 extern void SensorHandler_Start(SensorHandlerConfig *config,
 		const osThreadAttr_t *attr);
+
+extern BaseType_t adcInit(adcConfig cfg);
+extern BaseType_t sP02Init(SpO2Config cfg);
+
+extern void* adcHandlerGetInstance(void);
+extern void ADCHandler_TaskEntry(void* arg);
+
 extern const QueueHandle_t getSensorQueue(void);
 #ifdef __cplusplus
 }
@@ -166,10 +173,11 @@ void MX_FREERTOS_Init(void) {
 	sP02_Config.queue = sp02_to_SensorHandlerHandle;
 	sP02_Config.hi2c = &hi2c1;
 
+
 	adcConfig adc_Config;
 	adc_Config.queue = adc_to_SensorHandlerHandle;
 	adc_Config.adc = &hadc1;
-
+	if(!adcInit(adc_Config)) Error_Handler();
 	/* USER CODE END RTOS_QUEUES */
 	/* creation of defaultTask */
 	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL,
@@ -182,7 +190,7 @@ void MX_FREERTOS_Init(void) {
 	sp02TaskHandle = osThreadNew(startSp02, &sP02_Config, &sp02Task_attributes);
 
 	/* creation of adcSensorsTask */
-	adcSensorsTaskHandle = osThreadNew(StartAdcSensors, &adc_Config,
+	adcSensorsTaskHandle = osThreadNew(StartAdcSensors, adcHandlerGetInstance(),
 			&adcSensorsTask_attributes);
 
 	/* USER CODE BEGIN RTOS_THREADS */
@@ -208,6 +216,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument) {
 	/* USER CODE BEGIN defaultTask */
+
 	/* Infinite loop */
 	for (;;) {
 		osDelay(1);
@@ -241,7 +250,9 @@ void startSp02(void *argument) {
 void StartAdcSensors(void *argument) {
 	/* USER CODE BEGIN adcSensorsTask */
 	/* Infinite loop */
-	for (;;) {
+	ADCHandler_TaskEntry(argument);
+	// Should never land here!!!
+	for (;;){
 		osDelay(1);
 	}
 	/* USER CODE END adcSensorsTask */

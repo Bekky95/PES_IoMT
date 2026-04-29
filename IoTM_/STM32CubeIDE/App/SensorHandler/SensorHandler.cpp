@@ -59,11 +59,7 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
     mConfig = *config;
     mRunning = true;
 
-    if (config->hadc) {
-        mAdc = new AdcDma(config->hadc, config->adcChannelCount);
-        mAdcChannel1 = mAdc->registerChannel(0);
-    }
-    else if (config->hi2c) {
+    if (config->hi2c) {
     	mMax3010x = new MAX3010x(config->hi2c);
     }
 
