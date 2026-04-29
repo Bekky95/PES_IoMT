@@ -13,20 +13,12 @@
 SensorHandler* SensorHandler::sInstance = nullptr;
 static osThreadId_t tSensorHandlerHandle;
 
-extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-		//TODO: Check hadc and sinstance
-		SensorHandler::instance().notifyAdc(hadc);
-}
 
 extern "C" void SensorHandler_Start(SensorHandlerConfig* config, const osThreadAttr_t* attr)
 {
     SensorHandler::start(config, attr);
 }
 
-extern "C" void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
-	SensorHandler::instance().notifyAdc(hadc);
-}
 
 SensorHandler::~SensorHandler() {
     this->stop();
@@ -67,14 +59,6 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
     mUiSem = mConfig.uiSem;
 }
 
-void SensorHandler::notifyAdc(ADC_HandleTypeDef* hadc)
-{
-	if(hadc != mConfig.hadc) return;
-	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR(mTaskHandle, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
 
 const QueueHandle_t SensorHandler::getUIQueue(void) const{
 	return mUIQueue;

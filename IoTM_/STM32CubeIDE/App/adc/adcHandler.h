@@ -5,7 +5,6 @@
  *      Author: Lucian
  */
 //TODO: implement
-
 #ifndef APP_ADC_ADCHANDLER_H_
 #define APP_ADC_ADCHANDLER_H_
 #include "FreeRTOS.h"
@@ -17,13 +16,20 @@ public:
 	adcHandler();
 	virtual ~adcHandler();
 	BaseType_t init(adcConfig config);
-	static void StartAdcSensors(void *argument);
+
+	// Interupt callbacks:
+	void adcErrorCallback(ADC_HandleTypeDef *hadc);
+	void adcConcCpltCallback(ADC_HandleTypeDef *hadc);
+
+	// Task Loop:
+	void run();
 
 private:
-	void run();
-	AdcDma* mAdc = nullptr;
-	AdcChannel* 		mAdcChannel1;
-	osMessageQueueId_t	mQueue;
+	adcConfig mConfig;
+	AdcDma *mAdc = nullptr;
+	AdcChannel *mAdcChannel1 = nullptr;
+	osMessageQueueId_t mQueue = nullptr;
+	TaskHandle_t mTaskHandle = nullptr;
 };
 
 #endif /* APP_ADC_ADCHANDLER_H_ */
