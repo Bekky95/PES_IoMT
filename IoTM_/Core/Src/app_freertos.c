@@ -198,7 +198,7 @@ void MX_FREERTOS_Init(void) {
 	/* add threads, ... */
 	SensorHandlerConfig config = { .hadc = &hadc1, .adcChannelCount = 1, .hi2c =
 			&hi2c1, .i2cAddress = 0x48, .i2cReadBytes = 2, .loopPeriodMs = 20,
-			.uiQueue = uiQueue, .uiSem = UIQueueSemHandle, };
+			.uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle, .uiSem = UIQueueSemHandle, };
 
 	SensorHandler_Start(&config, &tSensorHandler_attributes);
 	/* USER CODE END RTOS_THREADS */

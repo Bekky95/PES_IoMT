@@ -56,6 +56,7 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
     }
 
     mUIQueue = mConfig.uiQueue;
+    mAdcQueue = mConfig.adcQueue;
     mUiSem = mConfig.uiSem;
 }
 
@@ -89,29 +90,46 @@ void SensorHandler::taskLoop() {
 	//start the MAX3010x sensor with default params
 	mMax3010x->setup();
 
+	// Notification bits
+	uint32_t bits = 0;
+
 	//TODO: fix here, read data from sensors and send to display/mqtt
     while (mRunning) {
     	printf("test");
+    	osStatus_t status = osOK;
+
     	SensorData data = {};
 
-    	uint32_t notified = ulTaskNotifyTake(pdTRUE, ticksToWait);
+    	// Wait for notification from other tasks
+    	xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
 
-    	if(notified > 0) {
-    		// ADC interrupt fired handle
-        	//data.adc[0] = mAdcChannel1->getVoltValue();
+    	if(bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 
-        	// Get semahpore and write data to the UI Queue
-        	//if(xSemaphoreTake(mUiSem, pdMS_TO_TICKS(1)) == pdTRUE) {
-        	//	xQueueSend(mUIQueue,&data,0);
-        	//	xSemaphoreGive(mUiSem);
-        	//}
+    		float adcData = 0;
+
+    		if(osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
+				// ADC interrupt fired handle by passing data to sources
+				// TODO handle more than one adc source
+				data.EmgData = adcData;
+				// Get semahpore and write data to the UI Queue
+
+    		}
+    		else {
+    			status = osError;
+    		}
     	}
     	// check if MAX3010x has new data for 1ms warning blocking function!
     	if(mMax3010x->safeCheck(pdMS_TO_TICKS(1))) {
 
     	}
 
-
+    	// if Status ok send new data to UI
+    	// TODO: maybe send it everytime new data is captured so that data is always fresh
+    	// TODO: send data as a ID to show which sensor and pointer to data to make handling easier
+    	if(status == osOK) {
+    		// no need to notify the UI task as it triggers every tick (60Hz??)
+    		osMessageQueuePut(mUIQueue, &data, 0, 0);
+    	}
 
     }
     // terminate task if mRunning is set to false

@@ -67,6 +67,7 @@ private:
 
 	//osEventFlagsId_t	mflags;
 	QueueHandle_t		mUIQueue = nullptr	;
+	osMessageQueueId_t	mAdcQueue = nullptr;
 	TaskHandle_t		mTaskHandle;
 	SemaphoreHandle_t	mUiSem = nullptr;
 	bool				mRunning = false;

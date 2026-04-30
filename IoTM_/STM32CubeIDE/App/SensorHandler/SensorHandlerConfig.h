@@ -40,6 +40,7 @@ typedef struct  {
 	uint16_t			i2cReadBytes;
 	uint32_t			loopPeriodMs;
 	QueueHandle_t   	uiQueue;
+	osMessageQueueId_t	adcQueue;
 	SemaphoreHandle_t     uiSem;
 } SensorHandlerConfig;
 
@@ -54,6 +55,14 @@ typedef struct {
 	uint8_t		adcChannelCount;
 }adcConfig;
 
+// Sensor_Handler_Notifybits
+#define SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA  (1UL << 0)
+#define SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA  (1UL << 1)
+/* TODO
+ * #define SENSOR_HANDLER_NOTIFYBITS_NEW_MQTT_PACKET  (1UL << 2)
+ * #define SENSOR_HANDLER_NOTIFYBITS_ADC_ERROR        (1UL << 3)
+ * usw...
+ */
 #ifdef __cplusplus
 }
 #endif

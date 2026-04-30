@@ -21,6 +21,8 @@ public:
 	void adcErrorCallback(ADC_HandleTypeDef *hadc);
 	void adcConcCpltCallback(ADC_HandleTypeDef *hadc);
 
+	osMessageQueueId_t getQueue();
+
 	// Task Loop:
 	void run();
 
