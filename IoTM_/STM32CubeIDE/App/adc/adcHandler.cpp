@@ -58,6 +58,7 @@ BaseType_t adcHandler::init(adcConfig config) {
     } else if(config.queue) {
     	mQueue = config.queue;
     } else {
+    	vTaskSuspend(nullptr);
     	stat = pdFALSE;
     }
     return stat;
@@ -94,20 +95,22 @@ void adcHandler::run() {
 	auto stat = mAdc->start();
 	configASSERT(stat == HAL_OK);
 
-	// 0: dont clear bits on entry
-	// 0xFFFFFFFF: clear bits on exit
-	xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
+	while(1) {
+		// 0: dont clear bits on entry
+		// 0xFFFFFFFF: clear bits on exit
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
 
-	if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
-		float adcData = mAdcChannel1->getVoltValue();
-		osMessageQueuePut(mQueue, &adcData, 0, 0);
-		//TODO: check initalization of senorhandler task before calling this? Needed?
-		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle), SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
-		//TODO: notify Sensor Handler about new data here!!
-	}
-	if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
-		// TODO: ensure this works??
-		mAdc->stop();
-		mAdc->start();
+		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
+			float adcData = mAdcChannel1->getVoltValue();
+			osMessageQueuePut(mQueue, &adcData, 0, 0);
+			//TODO: check initalization of senorhandler task before calling this? Needed?
+			xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle), SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
+			//TODO: notify Sensor Handler about new data here!!
+		}
+		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
+			// TODO: ensure this works??
+			mAdc->stop();
+			mAdc->start();
+		}
 	}
 }

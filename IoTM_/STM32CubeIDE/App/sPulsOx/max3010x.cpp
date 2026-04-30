@@ -697,6 +697,7 @@ HAL_StatusTypeDef MAX3010x::init(void) {
 	if (MAX_30105_EXPECTEDPARTID != partID) {
 		status = HAL_ERROR;
 	}
+	readRevisionID();
 	return status;
 }
 

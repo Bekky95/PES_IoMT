@@ -36,7 +36,7 @@ extern "C" {
 extern void SensorHandler_Start(SensorHandlerConfig *config,
 		const osThreadAttr_t *attr);
 
-extern BaseType_t sP02Init(SpO2Config cfg);
+extern osStatus_t sP02Init(SpO2Config cfg);
 
 // ADC Task:
 extern BaseType_t adcInit(adcConfig cfg);
