@@ -10,7 +10,6 @@
 
 #include "App/adc/adc.h"
 #include "App/sPulsOx/max3010x.h"
-#include "SensorHandlerConfig.h"
 #include "cmsis_os2.h"
 #include "main.h"
 #include "FreeRTOS.h"
@@ -19,6 +18,10 @@
 #include "semphr.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "Config.h"
+#include <cstring>
+#include <numeric>
+#include <cstdio>
 
 static constexpr uint32_t ADC_HALF = 0x01;
 static constexpr uint32_t ADC_FULL = 0x02;
@@ -60,7 +63,6 @@ private:
 	// ADC:
 	// TODO: move adc into sensor wrapper classes i.e sEEG(adcChannel1)...
 	AdcDma*		mAdc = nullptr;
-	AdcChannel* 		mAdcChannel1;
 
 	//MAX3010x HR and SpO2 Sensor:
 	MAX3010x*	mMax3010x = nullptr;
@@ -68,6 +70,7 @@ private:
 	//osEventFlagsId_t	mflags;
 	QueueHandle_t		mUIQueue = nullptr	;
 	osMessageQueueId_t	mAdcQueue = nullptr;
+	osMessageQueueId_t	mMax3010xQueue= nullptr;
 	TaskHandle_t		mTaskHandle;
 	SemaphoreHandle_t	mUiSem = nullptr;
 	bool				mRunning = false;

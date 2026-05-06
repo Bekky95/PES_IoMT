@@ -131,7 +131,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     NodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
     NodeConfig.Init.SrcInc = DMA_SINC_FIXED;
     NodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
-    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_WORD;
     NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
     NodeConfig.Init.SrcBurstLength = 8;
     NodeConfig.Init.DestBurstLength = 8;

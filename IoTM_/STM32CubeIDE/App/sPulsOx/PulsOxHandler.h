@@ -7,10 +7,11 @@
 //TODO: implement
 #ifndef APP_SPULSOX_PULSOXHANDLER_H_
 #define APP_SPULSOX_PULSOXHANDLER_H_
+#include "Config.h"
 #include "FreeRTOS.h"
-#include "SensorHandler/SensorHandlerConfig.h"
 #include "max3010x.h"
 #include "spo2_algorithm.h"
+
 
 class PulsOxHandler {
 public:
@@ -26,7 +27,7 @@ private:
 
 	const static uint8_t BUFFER_LEN = 100;
 
-	MAX3010x* 	mMAX3010x;
+	MAX3010x mMAX3010x;
 	uint32_t irBuffer[BUFFER_LEN]; //infrared LED sensor data
 	uint32_t redBuffer[BUFFER_LEN];  //red LED sensor data
 };

@@ -13,18 +13,20 @@ namespace ADC_NotifyBits {
    constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
 }
 
+extern "C" void SensorHandler_NotifyADC();
+
 extern osThreadId_t tSensorHandlerHandle;
 
 static adcHandler adcHandlerInstance;
-extern "C" adcHandler* adcHandlerGetInstance() {
-	return &adcHandlerInstance;
+extern "C" void* adcHandlerGetInstance() {
+	return static_cast<void*>(&adcHandlerInstance);
 }
 
 extern "C" void ADCHandler_TaskEntry(void* arg) {
 	static_cast<adcHandler*>(arg)->run();
 }
 
-extern "C" BaseType_t adcInit(adcConfig cfg) {
+extern "C" osStatus_t adcInit(adcConfig cfg) {
 	return adcHandlerInstance.init(cfg);
 }
 // ADC conversion complete interrupt callback
@@ -46,20 +48,23 @@ adcHandler::adcHandler() {
 
 adcHandler::~adcHandler() {
 	// TODO Auto-generated destructor stub
-	delete mAdc;
+	//delete mAdc;
 }
 
-BaseType_t adcHandler::init(adcConfig config) {
-	BaseType_t stat = pdTRUE;
+osStatus_t adcHandler::init(adcConfig config) {
+	volatile uint32_t adcInstance = (uint32_t)config.adc->Instance;
+	osStatus_t stat = osOK;
 	mConfig = config;
+	//TODO clean up
     if (config.adc) {
-        mAdc = new AdcDma(config.adc, config.adcChannelCount);
-        mAdcChannel1 = mAdc->registerChannel(0);
-    } else if(config.queue) {
+        mAdc = AdcDma(config.adc, config.adcChannelCount);
+    }  else {
+    	stat = osError;
+    }
+    if(config.queue) {
     	mQueue = config.queue;
     } else {
-    	vTaskSuspend(nullptr);
-    	stat = pdFALSE;
+    	stat = osError;
     }
     return stat;
 }
@@ -91,9 +96,12 @@ void adcHandler::run() {
 	mTaskHandle = xTaskGetCurrentTaskHandle();
 	uint32_t bits = 0;
 
-	// Start the ADC
-	auto stat = mAdc->start();
-	configASSERT(stat == HAL_OK);
+	// if any of the adc senors are configed set up adc
+	if(USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
+		// init the adc
+		HAL_StatusTypeDef stat = mAdc.start();
+		configASSERT(stat == HAL_OK);
+	}
 
 	while(1) {
 		// 0: dont clear bits on entry
@@ -101,16 +109,17 @@ void adcHandler::run() {
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
 
 		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
-			float adcData = mAdcChannel1->getVoltValue();
+			//TODO add multichannel
+			float adcData = mAdc.GetChValVolt(0);
 			osMessageQueuePut(mQueue, &adcData, 0, 0);
 			//TODO: check initalization of senorhandler task before calling this? Needed?
-			xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle), SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
+			SensorHandler_NotifyADC();
 			//TODO: notify Sensor Handler about new data here!!
 		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
 			// TODO: ensure this works??
-			mAdc->stop();
-			mAdc->start();
+			mAdc.stop();
+			mAdc.start();
 		}
 	}
 }

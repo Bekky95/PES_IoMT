@@ -15,7 +15,7 @@ extern "C" {
 #define USE_EEG_SENSOR	true
 #define USE_EMG_SENSOR  true
 #define USE_EKG_SENSOR  true
-#define USE_SP02_SENSOR false
+#define USE_SP02_SENSOR true
 #define USE_MQTT_CONN   false
 
 typedef enum {

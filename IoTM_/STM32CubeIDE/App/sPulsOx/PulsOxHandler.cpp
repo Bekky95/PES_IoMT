@@ -7,16 +7,12 @@
 
 #include <sPulsOx/PulsOxHandler.h>
 
-//TODO move this to data struct that is sent per queue
-// Results — volatile since they could be read from another task
-static volatile int32_t spo2 = 0;
-static volatile int8_t validSPO2 = 0;
-static volatile int32_t heartRate = 0;
-static volatile int8_t validHeartRate = 0;
+// TODO maybe protect this in a giver function
+extern osThreadId_t tSensorHandlerHandle;
 
 static PulsOxHandler pulsOxHandlerInstance;
-extern "C" PulsOxHandler* pulsOxHandlerGetInstance() {
-	return &pulsOxHandlerInstance;
+extern "C" void* pulsOxHandlerGetInstance() {
+	return static_cast<void*>(&pulsOxHandlerInstance);
 }
 
 extern "C" void PulsOxHandler_TaskEntry(void *arg) {
@@ -26,16 +22,18 @@ extern "C" osStatus_t sP02Init(SpO2Config config) {
 	return pulsOxHandlerInstance.init(config);
 }
 
+extern "C" void SensorHandler_NotifyMAX();
+
 osStatus_t PulsOxHandler::init(SpO2Config cfg) {
-	mMAX3010x = new MAX3010x(cfg.hi2c);
+	mMAX3010x = MAX3010x(cfg.hi2c);
 	mQueue = cfg.queue;
 
 	// Init sensor
-	osStatus_t status = (osStatus_t) mMAX3010x->init();
+	osStatus_t status = (osStatus_t) mMAX3010x.init();
 
 	// Init failed return
 	// TODO add error handling/logging
-	if (!status) {
+	if (status != osOK) {
 		vTaskSuspend(nullptr);
 		return status;
 	}
@@ -48,7 +46,7 @@ osStatus_t PulsOxHandler::init(SpO2Config cfg) {
 	int pulseWidth = 411; //Options: 69, 118, 215, 411
 	int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
 
-	mMAX3010x->setup(ledBrightness, sampleAverage, ledMode, sampleRate,
+	mMAX3010x.setup(ledBrightness, sampleAverage, ledMode, sampleRate,
 			pulseWidth, adcRange);
 
 	return status;
@@ -67,26 +65,28 @@ void PulsOxHandler::run() {
 	mTaskHandle = xTaskGetCurrentTaskHandle();
 	uint32_t bits = 0;
 
+	MAX3010x_Data data = { };
+
 	// Collect initial 100 samples
 	for (uint8_t i = 0; i < BUFFER_LEN; i++) {
 
 		// Block in small yields until new data is ready
-		while (!mMAX3010x->available()) {
-			mMAX3010x->check();
+		while (!mMAX3010x.available()) {
+			mMAX3010x.check();
 			osDelay(0.5);
 		}
 
-		redBuffer[i] = mMAX3010x->getRed();
-		irBuffer[i] = mMAX3010x->getIR();
-		mMAX3010x->nextSample();
+		redBuffer[i] = mMAX3010x.getRed();
+		irBuffer[i] = mMAX3010x.getIR();
+		mMAX3010x.nextSample();
 	}
 	// Initial HR + SpO2 calculation on first 100 samples
 	maxim_heart_rate_and_oxygen_saturation(irBuffer, BUFFER_LEN, redBuffer,
-			(int32_t*) &spo2, (int8_t*) &validSPO2, (int32_t*) &heartRate,
-			(int8_t*) &validHeartRate);
+			(int32_t*) &data.spo2, (int8_t*) &data.validSPO2,
+			(int32_t*) &data.heartRate, (int8_t*) &data.validHeartRate);
 
 	// main loop
-	while (1) {
+	while (USE_SP02_SENSOR) {
 		// Shift last 75 samples down, discarding oldest 25
 		for (uint8_t i = 25; i < 100; i++) {
 			redBuffer[i - 25] = redBuffer[i];
@@ -95,22 +95,24 @@ void PulsOxHandler::run() {
 
 		// Collect 25 fresh samples into the top of the buffer
 		for (uint8_t i = 75; i < 100; i++) {
-			while (!mMAX3010x->available()) {
-				mMAX3010x->check();
+			while (!mMAX3010x.available()) {
+				mMAX3010x.check();
 				osDelay(1);
 			}
 
-			redBuffer[i] = mMAX3010x->getRed();
-			irBuffer[i] = mMAX3010x->getIR();
-			mMAX3010x->nextSample();
+			redBuffer[i] = mMAX3010x.getRed();
+			irBuffer[i] = mMAX3010x.getIR();
+			mMAX3010x.nextSample();
 		}
 
 		// Recalculate
-		maxim_heart_rate_and_oxygen_saturation(irBuffer, BUFFER_LEN,
-				redBuffer, (int32_t*) &spo2, (int8_t*) &validSPO2,
-				(int32_t*) &heartRate, (int8_t*) &validHeartRate);
+		maxim_heart_rate_and_oxygen_saturation(irBuffer, BUFFER_LEN, redBuffer,
+				(int32_t*) &data.spo2, (int8_t*) &data.validSPO2,
+				(int32_t*) &data.heartRate, (int8_t*) &data.validHeartRate);
 
 		//TODO send data in queue to sensor handler and set flags
+		osMessageQueuePut(mQueue, &data, 0, 0);
+		SensorHandler_NotifyMAX();
 	}
 
 	// Should never get h6re

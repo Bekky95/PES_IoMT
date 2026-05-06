@@ -21,6 +21,7 @@ public:
 	MAX3010x(I2C_HandleTypeDef *hI2c) :
 			mI2c(hI2c) {
 	}
+	MAX3010x() : mI2c(nullptr) {}
 	HAL_StatusTypeDef init(void);
 	void setup(uint8_t powerLevel = 0x1F, uint8_t sampleAverage = 4,
 			uint8_t ledMode = 7, uint16_t sampleRate = 400,

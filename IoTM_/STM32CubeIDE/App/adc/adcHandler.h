@@ -8,14 +8,15 @@
 #ifndef APP_ADC_ADCHANDLER_H_
 #define APP_ADC_ADCHANDLER_H_
 #include "FreeRTOS.h"
-#include "SensorHandler/SensorHandlerConfig.h"
+#include "Config.h"
 #include "adc.h"
+
 
 class adcHandler {
 public:
 	adcHandler();
 	virtual ~adcHandler();
-	BaseType_t init(adcConfig config);
+	osStatus_t init(adcConfig config);
 
 	// Interupt callbacks:
 	void adcErrorCallback(ADC_HandleTypeDef *hadc);
@@ -28,8 +29,8 @@ public:
 
 private:
 	adcConfig mConfig;
-	AdcDma *mAdc = nullptr;
-	AdcChannel *mAdcChannel1 = nullptr;
+	AdcDma mAdc;
+
 	osMessageQueueId_t mQueue = nullptr;
 	TaskHandle_t mTaskHandle = nullptr;
 };
