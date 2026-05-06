@@ -183,12 +183,45 @@
           {
             "InteractionName": "Interaction1",
             "Trigger": {
-              "Type": "TriggerOnEveryTick",
-              "TickCount": 1
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bPulsOx"
             },
             "Action": {
               "Type": "ActionCustom",
-              "FunctionName": "getADCVal"
+              "FunctionName": "bPulsOxClicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction2",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEKG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEkgClicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction3",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEEG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEegClicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction4",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEMG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEmgClicked"
             }
           }
         ]

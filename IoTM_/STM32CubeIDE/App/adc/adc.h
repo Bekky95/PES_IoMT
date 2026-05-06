@@ -14,31 +14,35 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "adcChannel.h"
+#include <cstring>
 
-// Forward declaration of AdcChannel class
-class AdcChannel;
+static const float VREF = 3.3f;
 
 class AdcDma {
 public:
 	friend class AdcChannel;
 
 	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
-
+    // Constructor — no hardware access, no assertions
+    AdcDma() : mHadc(nullptr), mNumChannels(0)
+    {
+        memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
+    }
+    //TODO the mHadc seems to be getting a copy and not the actual register pointer FIX!!
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 
 	const uint32_t* getValues();
-	uint32_t getChannelValue(uint8_t ch) const;
+	float getChannelValue(uint8_t ch) const;
+	float GetChValVolt(uint8_t ch) const;
 
-	AdcChannel* registerChannel(uint8_t ch) const;
 
 private:
+	static constexpr uint8_t MAX_CHANNELS = 1;
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	AdcChannel** 	    mAdcChannels;
-	uint32_t* 			mDmaBuffer;
+	uint32_t 			mDmaBuffer[MAX_CHANNELS];
 
 
 

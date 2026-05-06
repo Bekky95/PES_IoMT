@@ -9,7 +9,7 @@
 #define APP_SENSORHANDLER_SENSORHANDLER_H_
 
 #include "App/adc/adc.h"
-#include "SensorHandlerConfig.h"
+#include "App/sPulsOx/max3010x.h"
 #include "cmsis_os2.h"
 #include "main.h"
 #include "FreeRTOS.h"
@@ -18,6 +18,10 @@
 #include "semphr.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "Config.h"
+#include <cstring>
+#include <numeric>
+#include <cstdio>
 
 static constexpr uint32_t ADC_HALF = 0x01;
 static constexpr uint32_t ADC_FULL = 0x02;
@@ -35,27 +39,38 @@ public:
 	const SemaphoreHandle_t getUiSemaphore(void) const;
 
 private:
+	//Constructors and Destructor:
 	SensorHandler() = default;
 	SensorHandler(const SensorHandler&) = delete;
 	SensorHandler(const SensorHandlerConfig* config);
 	~SensorHandler();
 
+	// Init and Task Stuff:
     void init(const SensorHandlerConfig* config);  // called once inside start()
     static void taskEntry(void* pv);
     void taskLoop();
 
-
+    // Data functions:
 	void onAdcData(uint8_t channel, const uint16_t* data, uint8_t size);
 	bool readI2C();
 
+	// The global Instance
 	static SensorHandler*	sInstance;
 
+	// Hardware Handles:
 	SensorHandlerConfig mConfig;
-	AdcDma*		mAdc;
-	AdcChannel* 		mAdcChannel1;
-	osEventFlagsId_t	mflags;
+
+	// ADC:
+	// TODO: move adc into sensor wrapper classes i.e sEEG(adcChannel1)...
+	AdcDma*		mAdc = nullptr;
+
+	//MAX3010x HR and SpO2 Sensor:
+	MAX3010x*	mMax3010x = nullptr;
+
+	//osEventFlagsId_t	mflags;
 	QueueHandle_t		mUIQueue = nullptr	;
-	uint8_t				mI2cBuf[4]					 = {};
+	osMessageQueueId_t	mAdcQueue = nullptr;
+	osMessageQueueId_t	mMax3010xQueue= nullptr;
 	TaskHandle_t		mTaskHandle;
 	SemaphoreHandle_t	mUiSem = nullptr;
 	bool				mRunning = false;

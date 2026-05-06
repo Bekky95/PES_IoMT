@@ -6,30 +6,38 @@
  */
 
 #include <SensorHandler/SensorHandler.h>
-#include <cstring>
-#include <numeric>
-#include <cstdio>
 
-SensorHandler* SensorHandler::sInstance = nullptr;
+SensorHandler *SensorHandler::sInstance = nullptr;
 static osThreadId_t tSensorHandlerHandle;
 
-extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
+		const osThreadAttr_t *attr) {
+	SensorHandler::start(config, attr);
+}
+
+extern "C" void SensorHandler_NotifyADC()
 {
-		//TODO: Check hadc and sinstance
-		SensorHandler::instance().notifyAdc(hadc);
+    if (tSensorHandlerHandle != nullptr)
+    {
+        xTaskNotify(
+            static_cast<TaskHandle_t>(tSensorHandlerHandle),
+            SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA,
+            eSetBits);
+    }
 }
 
-extern "C" void SensorHandler_Start(SensorHandlerConfig* config, const osThreadAttr_t* attr)
+extern "C" void SensorHandler_NotifyMAX()
 {
-    SensorHandler::start(config, attr);
+    if (tSensorHandlerHandle != nullptr)
+    {
+        xTaskNotify(
+            static_cast<TaskHandle_t>(tSensorHandlerHandle),
+            SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA,
+            eSetBits);
+    }
 }
-
-extern "C" void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
-	SensorHandler::instance().notifyAdc(hadc);
-}
-
 SensorHandler::~SensorHandler() {
-    this->stop();
+	this->stop();
 }
 
 void SensorHandler::stop() {
@@ -41,43 +49,36 @@ SensorHandler& SensorHandler::instance() {
 	return *sInstance;
 }
 // Public API
-void SensorHandler::start(SensorHandlerConfig* config, const osThreadAttr_t* attr) {
+void SensorHandler::start(SensorHandlerConfig *config,
+		const osThreadAttr_t *attr) {
 
-	  if(sInstance != nullptr) {
-		  return;
-	  }
+	if (sInstance != nullptr) {
+		return;
+	}
 
-	  sInstance = new SensorHandler();
-	  sInstance->init(config);
-	  //TODO: Clean this up
-	  tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry,
-	                                     sInstance,
-	                                     attr);
-};
+	sInstance = new SensorHandler();
+	sInstance->init(config);
+	//TODO: Clean this up
+	tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry, sInstance,
+			attr);
+}
+;
 
-void SensorHandler::init(const SensorHandlerConfig* config) {
-    mConfig = *config;
-    mRunning = true;
+void SensorHandler::init(const SensorHandlerConfig *config) {
+	mConfig = *config;
+	mRunning = true;
 
-    if (config->hadc) {
-        mAdc = new AdcDma(config->hadc, config->adcChannelCount);
-        mAdcChannel1 = mAdc->registerChannel(0);
-    }
-    mflags = osEventFlagsNew(nullptr);
-    mUIQueue = mConfig.uiQueue;
-    mUiSem = mConfig.uiSem;
+	if (config->hi2c) {
+		mMax3010x = new MAX3010x(config->hi2c);
+	}
+
+	mUIQueue = mConfig.uiQueue;
+	mAdcQueue = mConfig.adcQueue;
+	mMax3010xQueue = mConfig.max3010xQueue;
+	mUiSem = mConfig.uiSem;
 }
 
-void SensorHandler::notifyAdc(ADC_HandleTypeDef* hadc)
-{
-	if(hadc != mConfig.hadc) return;
-	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR(mTaskHandle, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-const QueueHandle_t SensorHandler::getUIQueue(void) const{
+const QueueHandle_t SensorHandler::getUIQueue(void) const {
 	return mUIQueue;
 }
 
@@ -85,37 +86,62 @@ const SemaphoreHandle_t SensorHandler::getUiSemaphore(void) const {
 	return mUiSem;
 }
 
-void SensorHandler::taskEntry(void* pv) {
+void SensorHandler::taskEntry(void *pv) {
 	static_cast<SensorHandler*>(pv)->taskLoop();
 }
 
 void SensorHandler::taskLoop() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
-	configASSERT(mAdc != nullptr);
+	const TickType_t ticksToWait = pdMS_TO_TICKS(100);
 
-	auto stat = mAdc->start();
-
-	configASSERT(stat == HAL_OK);
+	// Notification bits
+	uint32_t bits = 0;
 
 	//TODO: fix here, read data from sensors and send to display/mqtt
-    while (mRunning) {
-    	printf("test");
-    	SensorData data = {};
+	while (mRunning) {
+		osStatus_t status = osOK;
 
-    	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		SensorData data = { };
 
+		// Wait for notification from other tasks
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
 
-    	data.adc[0] = mAdcChannel1->getVoltValue();
+		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 
-    	// Get semahpore and write data to the UI Queue
-    	if(xSemaphoreTake(mUiSem, pdMS_TO_TICKS(1)) == pdTRUE) {
-    		xQueueSend(mUIQueue,&data,0);
-    		xSemaphoreGive(mUiSem);
-    	}
+			float adcData = 0;
 
+			if (osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
+				// ADC interrupt fired handle by passing data to sources
+				// TODO handle more than one adc source
+				data.EmgData = adcData;
+				//TODO figure out senor source
 
-    }
-    // terminate task if mRunning is set to false
-    vTaskDelete(NULL);
+			} else {
+				status = osError;
+			}
+		}
+		// check if MAX3010x has new data for 1ms warning blocking function!
+		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA) {
+			MAX3010x_Data MAX3010xData;
+
+			if (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr, 0)
+					== osOK) {
+				data.SpO2Data = MAX3010xData;
+			} else {
+				status = osError;
+			}
+		}
+
+		// if Status ok send new data to UI
+		// TODO: maybe send it everytime new data is captured so that data is always fresh
+		// TODO: send data as a ID to show which sensor and pointer to data to make handling easier
+		if (status == osOK) {
+			// no need to notify the UI task as it triggers every tick (60Hz??)
+			osMessageQueuePut(mUIQueue, &data, 0, 0);
+		}
+
+	}
+	// terminate task if mRunning is set to false
+	vTaskDelete(NULL);
 }
