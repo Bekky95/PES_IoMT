@@ -90,8 +90,6 @@ void SensorHandler::taskEntry(void *pv) {
 void SensorHandler::taskLoop() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
-	const TickType_t ticksToWait = pdMS_TO_TICKS(100);
-
 	// Notification bits
 	uint32_t bits = 0;
 
@@ -153,5 +151,11 @@ void SensorHandler::taskLoop() {
 }
 void SensorHandler::publishToAll(SensorData data) {
 	//TODO implement funciton to publish data to UI and MQTT
-
+	osStatus_t stat = osOK;
+	if(USE_UI) {
+		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
+	}
+	if(stat != osOK){
+		__BKPT();
+	}
 }

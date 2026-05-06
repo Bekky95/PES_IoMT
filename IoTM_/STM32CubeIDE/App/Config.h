@@ -15,10 +15,14 @@ extern "C" {
 #define USE_EEG_SENSOR	true
 #define USE_EMG_SENSOR  true
 #define USE_EKG_SENSOR  true
-#define USE_SP02_SENSOR true
+#define USE_ADC_SENSORS	(USE_EEG_SENSOR | USE_EMG_SENSOR |USE_EKG_SENSOR)
+#define USE_SP02_SENSOR false
+
+#define USE_UI 			true
 #define USE_MQTT_CONN   false
 
-#define ADC_CH_COUNT 3u
+//
+#define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
 
 typedef enum {
 	MAX1030x, EMG, EEG, EKG
