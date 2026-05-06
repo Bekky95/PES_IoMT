@@ -32,6 +32,12 @@ extern "C" osStatus_t adcInit(adcConfig cfg) {
 // ADC conversion complete interrupt callback
 extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+	/* TODO invalidte DCACHE maybe??
+    SCB_InvalidateDCache_by_Addr(
+    		adcHandlerInstance.getBuffer(),
+        instance->getBufferSizeBytes()
+    );
+    */
 	adcHandlerInstance.adcConcCpltCallback(hadc);
 }
 
@@ -109,9 +115,13 @@ void adcHandler::run() {
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
 
 		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
-			//TODO add multichannel
-			float adcData = mAdc.GetChValVolt(0);
-			osMessageQueuePut(mQueue, &adcData, 0, 0);
+			AdcSnapshot snapshot;
+			snapshot.timestamp_ms = osKernelGetTickCount();
+
+			for(uint8_t i = 0; i < ADC_CH_COUNT; i++) {
+				snapshot.values[i] = mAdc.GetChValVolt(i);
+			}
+			osMessageQueuePut(mQueue, &snapshot, 0, 0);
 			//TODO: check initalization of senorhandler task before calling this? Needed?
 			SensorHandler_NotifyADC();
 			//TODO: notify Sensor Handler about new data here!!
@@ -122,4 +132,8 @@ void adcHandler::run() {
 			mAdc.start();
 		}
 	}
+}
+
+uint32_t* adcHandler::getBuffer(){
+	return mAdc.getValues();
 }

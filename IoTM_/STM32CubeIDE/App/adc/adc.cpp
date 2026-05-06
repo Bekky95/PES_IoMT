@@ -47,7 +47,7 @@ HAL_StatusTypeDef AdcDma::stop() {
 	return stat;
 }
 
-const uint32_t* AdcDma::getValues() {
+uint32_t* AdcDma::getValues() {
 	return mDmaBuffer;
 }
 

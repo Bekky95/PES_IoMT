@@ -182,7 +182,7 @@ void MX_FREERTOS_Init(void) {
 	sp02_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(MAX3010x_Data),
 			&sp02_to_SensorHandler_attributes);
 	/* creation of adc_to_SensorHandler */
-	adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(float),
+	adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
 			&adc_to_SensorHandler_attributes);
 
 	// has to be placed here otherwise it will be erased with generating new code

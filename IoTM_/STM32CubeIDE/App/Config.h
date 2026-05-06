@@ -18,6 +18,8 @@ extern "C" {
 #define USE_SP02_SENSOR true
 #define USE_MQTT_CONN   false
 
+#define ADC_CH_COUNT 3u
+
 typedef enum {
 	MAX1030x, EMG, EEG, EKG
 } SensorType;
@@ -63,7 +65,17 @@ typedef struct {
 	uint8_t adcChannelCount;
 } adcConfig;
 
+typedef struct {
+    uint16_t values[ADC_CH_COUNT];
+    uint32_t timestamp_ms;
+} AdcSnapshot;
 
+typedef enum {
+    ADC_CH_EMG  = 0,
+    ADC_CH_EEG  = 1,
+    ADC_CH_EKG  = 2,
+
+} AdcChannel;
 
 // Sensor_Handler_Notifybits
 #define SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA  (1UL << 0)

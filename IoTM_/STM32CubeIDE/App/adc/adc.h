@@ -20,7 +20,6 @@ static const float VREF = 3.3f;
 
 class AdcDma {
 public:
-	friend class AdcChannel;
 
 	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
     // Constructor — no hardware access, no assertions
@@ -32,7 +31,7 @@ public:
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 
-	const uint32_t* getValues();
+	uint32_t* getValues();
 	float getChannelValue(uint8_t ch) const;
 	float GetChValVolt(uint8_t ch) const;
 

@@ -10,6 +10,7 @@
 #include "FreeRTOS.h"
 #include "Config.h"
 #include "adc.h"
+#include "core_cm33.h"
 
 
 class adcHandler {
@@ -23,6 +24,7 @@ public:
 	void adcConcCpltCallback(ADC_HandleTypeDef *hadc);
 
 	osMessageQueueId_t getQueue();
+	uint32_t* getBuffer();
 
 	// Task Loop:
 	void run();
