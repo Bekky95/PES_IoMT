@@ -96,15 +96,18 @@ const osMessageQueueAttr_t uiQueueAttributes = { .name = "uiQueue" };
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = { .name = "defaultTask",
-		.priority = (osPriority_t) osPriorityLow4, .stack_size = 128 * 4 };
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .priority = (osPriority_t) osPriorityLow4,
+  .stack_size = 128 * 4
+};
 /* Definitions for GUI_Task */
 osThreadId_t GUI_TaskHandle;
-const osThreadAttr_t GUI_Task_attributes = { .name = "GUI_Task", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 8192 * 4 };
-/* Definitions for UIQueueSem */
-osSemaphoreId_t UIQueueSemHandle;
-const osSemaphoreAttr_t UIQueueSem_attributes = { .name = "UIQueueSem" };
+const osThreadAttr_t GUI_Task_attributes = {
+  .name = "GUI_Task",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 8192 * 4
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -113,8 +116,6 @@ extern portBASE_TYPE IdleTaskHook(void *p);
 
 void StartDefaultTask(void *argument);
 extern void TouchGFX_Task(void *argument);
-void startSp02(void *argument);
-void StartAdcSensors(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -138,41 +139,39 @@ void vApplicationIdleHook(void) {
 /* USER CODE END 2 */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* USER CODE BEGIN RTOS_MUTEX */
+  /* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
-	/* USER CODE END RTOS_MUTEX */
-	/* creation of UIQueueSem */
-	UIQueueSemHandle = osSemaphoreNew(1, 1, &UIQueueSem_attributes);
+  /* USER CODE END RTOS_MUTEX */
 
-	/* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
-	/* USER CODE END RTOS_SEMAPHORES */
+  /* USER CODE END RTOS_SEMAPHORES */
 
-	/* USER CODE BEGIN RTOS_TIMERS */
+  /* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
-	/* USER CODE END RTOS_TIMERS */
+  /* USER CODE END RTOS_TIMERS */
 
-	/* USER CODE BEGIN RTOS_QUEUES */
+  /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
 	uiQueue = osMessageQueueNew(20, sizeof(SensorData), &uiQueueAttributes);
 
-	/* USER CODE END RTOS_QUEUES */
-	/* creation of defaultTask */
-	defaultTaskHandle = osThreadNew(StartDefaultTask, NULL,
-			&defaultTask_attributes);
+  /* USER CODE END RTOS_QUEUES */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-	/* creation of GUI_Task */
-	GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
-	/* USER CODE BEGIN RTOS_THREADS */
+  /* creation of GUI_Task */
+  GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
 
 	// Init and add SP02 sensor task
 	if (USE_SP02_SENSOR) {
@@ -218,11 +217,11 @@ void MX_FREERTOS_Init(void) {
 					UIQueueSemHandle, };
 
 	SensorHandler_Start(&config, &tSensorHandler_attributes);
-	/* USER CODE END RTOS_THREADS */
+  /* USER CODE END RTOS_THREADS */
 
-	/* USER CODE BEGIN RTOS_EVENTS */
+  /* USER CODE BEGIN RTOS_EVENTS */
 	/* add events, ... */
-	/* USER CODE END RTOS_EVENTS */
+  /* USER CODE END RTOS_EVENTS */
 
 }
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -232,53 +231,15 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument) {
-	/* USER CODE BEGIN defaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN defaultTask */
 
 	/* Infinite loop */
 	for (;;) {
 		osDelay(1);
 	}
-	/* USER CODE END defaultTask */
-}
-
-/* USER CODE BEGIN Header_startSp02 */
-/**
- * @brief Function implementing the sp02Task thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_startSp02 */
-void startSp02(void *argument) {
-	/* USER CODE BEGIN sp02Task */
-	if (USE_SP02_SENSOR) {
-		PulsOxHandler_TaskEntry(argument);
-	}
-	/* Infinite loop */
-	for (;;) {
-		osDelay(1);
-	}
-	/* USER CODE END sp02Task */
-}
-
-/* USER CODE BEGIN Header_StartAdcSensors */
-/**
- * @brief Function implementing the adcSensorsTask thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartAdcSensors */
-void StartAdcSensors(void *argument) {
-	/* USER CODE BEGIN adcSensorsTask */
-	/* Infinite loop */
-	if (USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
-		ADCHandler_TaskEntry(argument);
-	}
-	// Should never land here!!!
-	for (;;) {
-		osDelay(1);
-	}
-	/* USER CODE END adcSensorsTask */
+  /* USER CODE END defaultTask */
 }
 
 /* Private application code --------------------------------------------------*/

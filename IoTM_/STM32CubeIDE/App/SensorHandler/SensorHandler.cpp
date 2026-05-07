@@ -153,7 +153,11 @@ void SensorHandler::publishToAll(SensorData data) {
 	//TODO implement funciton to publish data to UI and MQTT
 	osStatus_t stat = osOK;
 	if(USE_UI) {
+		// No need to notify the UI Task as it triggers every tick (60Hz)
 		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
+	}
+	if(USE_MQTT) {
+		// TODO implement MQTT Task
 	}
 	if(stat != osOK){
 		__BKPT();
