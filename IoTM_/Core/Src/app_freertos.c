@@ -69,6 +69,14 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
+/* Definitions for sp02Task */
+osThreadId_t sp02TaskHandle;
+const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
+		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+/* Definitions for adcSensorsTask */
+osThreadId_t adcSensorsTaskHandle;
+const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
+		.priority = (osPriority_t) osPriorityLow, .stack_size = 128 * 4 };
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
 const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
@@ -100,25 +108,6 @@ const osThreadAttr_t GUI_Task_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
-/* Definitions for sp02Task */
-osThreadId_t sp02TaskHandle;
-const osThreadAttr_t sp02Task_attributes = {
-  .name = "sp02Task",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 512 * 4
-};
-/* Definitions for adcSensorsTask */
-osThreadId_t adcSensorsTaskHandle;
-const osThreadAttr_t adcSensorsTask_attributes = {
-  .name = "adcSensorsTask",
-  .priority = (osPriority_t) osPriorityLow,
-  .stack_size = 128 * 4
-};
-/* Definitions for UIQueueSem */
-osSemaphoreId_t UIQueueSemHandle;
-const osSemaphoreAttr_t UIQueueSem_attributes = {
-  .name = "UIQueueSem"
-};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -127,8 +116,6 @@ extern portBASE_TYPE IdleTaskHook(void *p);
 
 void StartDefaultTask(void *argument);
 extern void TouchGFX_Task(void *argument);
-void startSp02(void *argument);
-void StartAdcSensors(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -164,8 +151,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-  /* creation of UIQueueSem */
-  UIQueueSemHandle = osSemaphoreNew(1, 1, &UIQueueSem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
@@ -179,45 +164,57 @@ void MX_FREERTOS_Init(void) {
 	/* add queues, ... */
 	uiQueue = osMessageQueueNew(20, sizeof(SensorData), &uiQueueAttributes);
 
-	sp02_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(MAX3010x_Data),
-			&sp02_to_SensorHandler_attributes);
-	/* creation of adc_to_SensorHandler */
-	adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(float),
-			&adc_to_SensorHandler_attributes);
-
-	// has to be placed here otherwise it will be erased with generating new code
-	SpO2Config sP02_Config;
-	sP02_Config.queue = sp02_to_SensorHandlerHandle;
-	sP02_Config.hi2c = &hi2c1;
-	if (sP02Init(sP02_Config)!= osOK)
-		Error_Handler();
-
-	adcConfig adc_Config;
-	adc_Config.queue = adc_to_SensorHandlerHandle;
-	adc_Config.adc = &hadc1;
-	adc_Config.adcChannelCount = 1; //TODO set this based on config.h
-	//TODO adc is landing in error handler
-	osStatus_t stat = adcInit(adc_Config);
-	if (stat != osOK)
-		Error_Handler();
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of GUI_Task */
   GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
 
-  /* creation of sp02Task */
-  sp02TaskHandle = osThreadNew(startSp02, pulsOxHandlerGetInstance(), &sp02Task_attributes);
+	// Init and add SP02 sensor task
+	if (USE_SP02_SENSOR) {
+		sp02_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(MAX3010x_Data),
+				&sp02_to_SensorHandler_attributes);
 
-  /* creation of adcSensorsTask */
-  adcSensorsTaskHandle = osThreadNew(StartAdcSensors, adcHandlerGetInstance(), &adcSensorsTask_attributes);
+		SpO2Config sP02_Config;
+		sP02_Config.queue = sp02_to_SensorHandlerHandle;
+		sP02_Config.hi2c = &hi2c1;
+
+		if (sP02Init(sP02_Config) != osOK)
+			Error_Handler();
+
+		/* creation of sp02Task */
+		sp02TaskHandle = osThreadNew(startSp02, pulsOxHandlerGetInstance(),
+				&sp02Task_attributes);
+	}
+	// Init and add adc sensor task
+	if(USE_ADC_SENSORS) {
+		/* creation of adc_to_SensorHandler */
+		adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
+				&adc_to_SensorHandler_attributes);
+
+		adcConfig adc_Config;
+		adc_Config.queue = adc_to_SensorHandlerHandle;
+		adc_Config.adc = &hadc1;
+		adc_Config.adcChannelCount = ADC_CH_COUNT; //TODO set this based on config.h
+		//TODO adc is landing in error handler
+		osStatus_t stat = adcInit(adc_Config);
+		if (stat != osOK)
+			Error_Handler();
+
+		/* creation of adcSensorsTask */
+		adcSensorsTaskHandle = osThreadNew(StartAdcSensors, adcHandlerGetInstance(),
+				&adcSensorsTask_attributes);
+	}
+
 
 	/* add threads, ... */
 	SensorHandlerConfig config = { .hadc = &hadc1, .adcChannelCount = 1, .hi2c =
-			&hi2c1, .uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle, .max3010xQueue=sp02_to_SensorHandlerHandle,
-			.uiSem = UIQueueSemHandle, };
+			&hi2c1, .uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle,
+			.max3010xQueue = sp02_to_SensorHandlerHandle, .uiSem =
+					UIQueueSemHandle, };
 
 	SensorHandler_Start(&config, &tSensorHandler_attributes);
   /* USER CODE END RTOS_THREADS */
@@ -243,47 +240,6 @@ void StartDefaultTask(void *argument)
 		osDelay(1);
 	}
   /* USER CODE END defaultTask */
-}
-
-/* USER CODE BEGIN Header_startSp02 */
-/**
- * @brief Function implementing the sp02Task thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_startSp02 */
-void startSp02(void *argument)
-{
-  /* USER CODE BEGIN sp02Task */
-	if (USE_SP02_SENSOR) {
-		PulsOxHandler_TaskEntry(argument);
-	}
-	/* Infinite loop */
-	for (;;) {
-		osDelay(1);
-	}
-  /* USER CODE END sp02Task */
-}
-
-/* USER CODE BEGIN Header_StartAdcSensors */
-/**
- * @brief Function implementing the adcSensorsTask thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartAdcSensors */
-void StartAdcSensors(void *argument)
-{
-  /* USER CODE BEGIN adcSensorsTask */
-	/* Infinite loop */
-	if (USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
-		ADCHandler_TaskEntry(argument);
-	}
-	// Should never land here!!!
-	for (;;) {
-		osDelay(1);
-	}
-  /* USER CODE END adcSensorsTask */
 }
 
 /* Private application code --------------------------------------------------*/

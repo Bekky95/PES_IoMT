@@ -37,6 +37,7 @@ public:
 	void notifyAdc(ADC_HandleTypeDef* hadc);
 	const QueueHandle_t getUIQueue(void) const;
 	const SemaphoreHandle_t getUiSemaphore(void) const;
+	void publishToAll(SensorData data);
 
 private:
 	//Constructors and Destructor:
