@@ -3,6 +3,7 @@
 
 #include <gui/model/ModelListener.hpp>
 #include <mvp/Presenter.hpp>
+#include <Config.h>
 
 using namespace touchgfx;
 
@@ -31,6 +32,9 @@ public:
 
 private:
     UIPresenter();
+
+    // The currrent sensor type
+    volatile SensorType currSensor;
 
     UIView& view;
 };
