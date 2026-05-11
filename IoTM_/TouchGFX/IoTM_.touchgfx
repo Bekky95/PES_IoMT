@@ -110,13 +110,13 @@
             "Width": 800,
             "Height": 430,
             "DataSeed": 1256137273,
-            "NumberOfValues": 50,
+            "NumberOfValues": 100,
             "MaxY": 3.5,
             "MinY": -0.5,
             "Precision": "0.0001",
-            "LastIndex": 49,
+            "LastIndex": 99,
             "XAxisScale": 1.0,
-            "GraphType": "GraphWrapClear",
+            "GraphType": "GraphScroll",
             "GraphDrawers": [
               {
                 "Type": "LineDrawer",

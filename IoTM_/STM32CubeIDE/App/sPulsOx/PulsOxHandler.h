@@ -18,7 +18,7 @@ public:
 	PulsOxHandler();
 	virtual ~PulsOxHandler();
 	osStatus_t init(SpO2Config cfg);
-
+	void errHandler(I2C_HandleTypeDef* hi2c);
 	void run();
 
 private:

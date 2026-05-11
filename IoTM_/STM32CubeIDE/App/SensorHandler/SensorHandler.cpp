@@ -6,10 +6,10 @@
  */
 
 #include <SensorHandler/SensorHandler.h>
-
+extern uint8_t UI_READY;
 //TODO maybe move
 // Maps ADC buffer index → SensorType
-static const SensorType ADC_CHANNEL_TYPE[ADC_CH_COUNT] = { SensorType::EMG,
+static const SensorType ADC_CHANNEL_TYPE[3] = { SensorType::EMG,
 		SensorType::EEG, SensorType::EKG, };
 
 SensorHandler *SensorHandler::sInstance = nullptr;
@@ -65,10 +65,6 @@ void SensorHandler::init(const SensorHandlerConfig *config) {
 	mConfig = *config;
 	mRunning = true;
 
-	if (config->hi2c) {
-		mMax3010x = new MAX3010x(config->hi2c);
-	}
-
 	mUIQueue = mConfig.uiQueue;
 	mAdcQueue = mConfig.adcQueue;
 	mMax3010xQueue = mConfig.max3010xQueue;
@@ -95,6 +91,9 @@ void SensorHandler::taskLoop() {
 
 	//TODO: fix here, read data from sensors and send to display/mqtt
 	while (mRunning) {
+		while(!UI_READY) {
+			osDelay(50);
+		}
 		osStatus_t status = osOK;
 
 		// Wait for notification from other tasks
@@ -145,21 +144,30 @@ void SensorHandler::taskLoop() {
 			}
 
 		}
-		// terminate task if mRunning is set to false
-		vTaskDelete(NULL);
 	}
+	// terminate task if mRunning is set to false
+	__BKPT();
+	vTaskDelete(NULL);
 }
 void SensorHandler::publishToAll(SensorData data) {
-	//TODO implement funciton to publish data to UI and MQTT
-	osStatus_t stat = osOK;
-	if(USE_UI) {
-		// No need to notify the UI Task as it triggers every tick (60Hz)
-		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
-	}
-	if(USE_MQTT) {
-		// TODO implement MQTT Task
-	}
-	if(stat != osOK){
-		__BKPT();
-	}
+	//TODO rate limit the sending to UI, find a better fix
+    uint32_t lastUISend = 0;
+    const uint32_t UI_UPDATE_MS = 33; // ~30fps
+    uint32_t now = osKernelGetTickCount();
+    if (now - lastUISend >= UI_UPDATE_MS) {
+    	osStatus_t stat = osOK;
+    	uint32_t cnt = osMessageQueueGetCount(mUIQueue);
+    	if(USE_UI && mUIQueue != nullptr) {
+    		// No need to notify the UI Task as it triggers every tick (60Hz)
+    		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
+    	}
+    	if(USE_MQTT) {
+    		// TODO implement MQTT Task
+    	}
+    	if(stat != osOK){
+    		__BKPT();
+    	}
+        lastUISend = now;
+    }
+
 }

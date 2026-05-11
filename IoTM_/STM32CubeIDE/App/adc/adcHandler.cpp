@@ -6,6 +6,7 @@
  */
 
 #include <adc/adcHandler.h>
+extern uint8_t UI_READY;
 
 // Notify Bitmask to identify which interrupt was triggered. Bzw which flag is set.
 namespace ADC_NotifyBits {
@@ -32,12 +33,6 @@ extern "C" osStatus_t adcInit(adcConfig cfg) {
 // ADC conversion complete interrupt callback
 extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	/* TODO invalidte DCACHE maybe??
-    SCB_InvalidateDCache_by_Addr(
-    		adcHandlerInstance.getBuffer(),
-        instance->getBufferSizeBytes()
-    );
-    */
 	adcHandlerInstance.adcConcCpltCallback(hadc);
 }
 
@@ -58,7 +53,7 @@ adcHandler::~adcHandler() {
 }
 
 osStatus_t adcHandler::init(adcConfig config) {
-	volatile uint32_t adcInstance = (uint32_t)config.adc->Instance;
+	//DEBUG: volatile uint32_t adcInstance = (uint32_t)config.adc->Instance;
 	osStatus_t stat = osOK;
 	mConfig = config;
 	//TODO clean up
@@ -86,6 +81,7 @@ void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
+	if(!mTaskHandle) return;
 	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
@@ -101,6 +97,9 @@ void adcHandler::run() {
 	//T
 	mTaskHandle = xTaskGetCurrentTaskHandle();
 	uint32_t bits = 0;
+	while(!UI_READY){
+		osDelay(50);
+	}
 
 	// if any of the adc senors are configed set up adc
 	if(USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
@@ -124,9 +123,9 @@ void adcHandler::run() {
 			osMessageQueuePut(mQueue, &snapshot, 0, 0);
 			//TODO: check initalization of senorhandler task before calling this? Needed?
 			SensorHandler_NotifyADC();
-			//TODO: notify Sensor Handler about new data here!!
 		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
+			__BKPT();
 			// TODO: ensure this works??
 			mAdc.stop();
 			mAdc.start();
@@ -134,6 +133,6 @@ void adcHandler::run() {
 	}
 }
 
-uint32_t* adcHandler::getBuffer(){
+uint16_t* adcHandler::getBuffer(){
 	return mAdc.getValues();
 }

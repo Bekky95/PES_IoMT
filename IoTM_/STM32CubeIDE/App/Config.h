@@ -19,13 +19,13 @@ extern "C" {
 #define USE_SP02_SENSOR false
 
 #define USE_UI 			true
-#define USE_MQTT_CONN   false
+#define USE_MQTT   false
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
 
 typedef enum {
-	MAX1030x, EMG, EEG, EKG
+	MAX1030x, EMG, EEG, EKG, SENSOR_NONE
 } SensorType;
 
 typedef struct {
@@ -55,6 +55,7 @@ typedef struct {
 	QueueHandle_t uiQueue;
 	osMessageQueueId_t adcQueue;
 	osMessageQueueId_t max3010xQueue;
+	osMessageQueueId_t uartQueue;
 	SemaphoreHandle_t uiSem;
 } SensorHandlerConfig;
 
@@ -70,7 +71,12 @@ typedef struct {
 } adcConfig;
 
 typedef struct {
-    uint16_t values[ADC_CH_COUNT];
+	osMessageQueueId_t queue;
+	UART_HandleTypeDef *uart;
+}uartConfig;
+
+typedef struct {
+    float values[ADC_CH_COUNT];
     uint32_t timestamp_ms;
 } AdcSnapshot;
 

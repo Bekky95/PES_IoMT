@@ -14,6 +14,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "Config.h"
 #include <cstring>
 
 static const float VREF = 3.3f;
@@ -31,17 +32,16 @@ public:
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 
-	uint32_t* getValues();
+	uint16_t* getValues();
 	float getChannelValue(uint8_t ch) const;
 	float GetChValVolt(uint8_t ch) const;
 
 
 private:
-	static constexpr uint8_t MAX_CHANNELS = 1;
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	uint32_t 			mDmaBuffer[MAX_CHANNELS];
+	uint16_t 			mDmaBuffer[ADC_CH_COUNT];
 
 
 

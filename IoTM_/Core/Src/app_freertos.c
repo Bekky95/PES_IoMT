@@ -28,6 +28,7 @@
 #include "Config.h"
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef huart2;
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,14 +37,24 @@ extern "C" {
 extern void SensorHandler_Start(SensorHandlerConfig *config,
 		const osThreadAttr_t *attr);
 
+// SP02 Task:
 extern osStatus_t sP02Init(SpO2Config cfg);
 extern void* PulsOxHandler_TaskEntry(void *arg);
 extern void* pulsOxHandlerGetInstance();
+void startSp02(void *argument);
 
 // ADC Task:
 extern osStatus_t adcInit(adcConfig cfg);
 extern void* adcHandlerGetInstance(void);
 extern void ADCHandler_TaskEntry(void *arg);
+void StartAdcSensors(void *argument);
+
+// UART <-> MQTT Task
+extern osStatus_t uartInit(uartConfig cf);
+void StartUartTask(void* argument);
+extern void UartHandler_TaskEntry(void* arg);
+extern void* UartHandlerGetInstance(void);
+
 
 extern const QueueHandle_t getSensorQueue(void);
 #ifdef __cplusplus
@@ -69,29 +80,43 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 
-/* Definitions for sp02Task */
-osThreadId_t sp02TaskHandle;
-const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
-/* Definitions for adcSensorsTask */
-osThreadId_t adcSensorsTaskHandle;
-const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
-		.priority = (osPriority_t) osPriorityLow, .stack_size = 128 * 4 };
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
 const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
 		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
 
+/* Definitions for sp02Task */
+osThreadId_t sp02TaskHandle;
+const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
+		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
 osMessageQueueId_t sp02_to_SensorHandlerHandle;
 const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 		"sp02_SensorHandler_Queue" };
 
+/* Definitions for adcSensorsTask */
+osThreadId_t adcSensorsTaskHandle;
+const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
 osMessageQueueId_t adc_to_SensorHandlerHandle;
 const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 		"adc_SensorHandler_Queue" };
 
+/* Definitions for UART <-> MQTT task */
+osThreadId_t uartTask;
+const osThreadAttr_t uartTask_attributes = { .name = "uartTask",
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
+osMessageQueueId_t sensorHandler_to_UartHandle;
+const osMessageQueueAttr_t sensorHandler_to_Uart_attributes = { .name =
+		"sensorHandler_to_Uart" };
+
 osMessageQueueId_t uiQueue;
 const osMessageQueueAttr_t uiQueueAttributes = { .name = "uiQueue" };
+/* Definitions for UIQueueSem */
+osSemaphoreId_t UIQueueSemHandle;
+const osSemaphoreAttr_t UIQueueSem_attributes = {
+  .name = "UIQueueSem"
+};
+
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -105,7 +130,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t GUI_TaskHandle;
 const osThreadAttr_t GUI_Task_attributes = {
   .name = "GUI_Task",
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityAboveNormal,
   .stack_size = 8192 * 4
 };
 
@@ -121,6 +146,8 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
 void vApplicationIdleHook(void);
+void configureTimerForRunTimeStats(void);
+unsigned long getRunTimeCounterValue(void);
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook(void) {
@@ -137,6 +164,19 @@ void vApplicationIdleHook(void) {
 	vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
 }
 /* USER CODE END 2 */
+
+/* USER CODE BEGIN 1 */
+/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
+__weak void configureTimerForRunTimeStats(void)
+{
+
+}
+
+__weak unsigned long getRunTimeCounterValue(void)
+{
+return 0;
+}
+/* USER CODE END 1 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -162,7 +202,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	uiQueue = osMessageQueueNew(20, sizeof(SensorData), &uiQueueAttributes);
+	uiQueue = osMessageQueueNew(500, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
@@ -209,11 +249,24 @@ void MX_FREERTOS_Init(void) {
 				&adcSensorsTask_attributes);
 	}
 
+	if(USE_MQTT) {
+		sensorHandler_to_UartHandle = osMessageQueueNew(16, sizeof(SensorData), &sensorHandler_to_Uart_attributes);
+		uartConfig uart_config;
+		uart_config.queue = sensorHandler_to_UartHandle;
+		uart_config.uart = &huart2;
+		osStatus_t stat = uartInit(uart_config);
+		/*TODO: check if needed, scheduler should still start even without mqtt connection:
+		if (stat != osOK)
+			Error_Handler();
+			*/
+
+	}
+
 
 	/* add threads, ... */
 	SensorHandlerConfig config = { .hadc = &hadc1, .adcChannelCount = 1, .hi2c =
 			&hi2c1, .uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle,
-			.max3010xQueue = sp02_to_SensorHandlerHandle, .uiSem =
+			.max3010xQueue = sp02_to_SensorHandlerHandle, .uartQueue = sensorHandler_to_UartHandle, .uiSem =
 					UIQueueSemHandle, };
 
 	SensorHandler_Start(&config, &tSensorHandler_attributes);
@@ -246,6 +299,56 @@ void StartDefaultTask(void *argument)
 /* USER CODE BEGIN Application */
 QueueHandle_t getSensorQueue(void) {
 	return uiQueue;
+}
+/**
+ * @brief Function implementing the sp02Task thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_startSp02 */
+void startSp02(void *argument)
+{
+  /* USER CODE BEGIN sp02Task */
+	if (USE_SP02_SENSOR) {
+		PulsOxHandler_TaskEntry(argument);
+	}
+	/* Infinite loop */
+	for (;;) {
+		osDelay(1);
+	}
+  /* USER CODE END sp02Task */
+}
+
+
+/* USER CODE BEGIN Header_StartAdcSensors */
+/**
+ * @brief Function implementing the adcSensorsTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartAdcSensors */
+void StartAdcSensors(void *argument)
+{
+  /* USER CODE BEGIN adcSensorsTask */
+	/* Infinite loop */
+	if (USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
+		ADCHandler_TaskEntry(argument);
+	}
+	// Should never land here!!!
+	for (;;) {
+		osDelay(1);
+	}
+}
+
+// Entry for uart task
+void StartUartTask(void *argument) {
+	if(USE_MQTT) {
+		UartHandler_TaskEntry(argument);
+	}
+	// Should never land here!!!
+	for (;;) {
+		osDelay(1);
+	}
 }
 /* USER CODE END Application */
 

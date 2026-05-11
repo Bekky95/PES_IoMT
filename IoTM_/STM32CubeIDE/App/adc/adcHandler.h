@@ -24,7 +24,7 @@ public:
 	void adcConcCpltCallback(ADC_HandleTypeDef *hadc);
 
 	osMessageQueueId_t getQueue();
-	uint32_t* getBuffer();
+	uint16_t* getBuffer();
 
 	// Task Loop:
 	void run();
