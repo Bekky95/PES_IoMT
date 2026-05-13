@@ -61,7 +61,7 @@ void SensorHandler::start(SensorHandlerConfig *config,
 	tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry, sInstance,
 			attr);
 }
-;
+
 
 void SensorHandler::init(const SensorHandlerConfig *config) {
 	mConfig = *config;
@@ -94,10 +94,10 @@ void SensorHandler::taskLoop() {
 
 	//TODO: fix here, read data from sensors and send to display/mqtt
 	while (mRunning) {
-		while(!UI_READY) {
+		while (!UI_READY) {
 			osDelay(50);
 		}
-		osStatus_t status = osOK;
+		//osStatus_t status = osOK;
 
 		// Wait for notification from other tasks
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
@@ -135,8 +135,8 @@ void SensorHandler::taskLoop() {
 				MAX3010x_Data MAX3010xData;
 
 				// Drain Data
-				while (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr, 0)
-						== osOK) {
+				while (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr,
+						0) == osOK) {
 					SensorData data = { };
 					data.type = SensorType::MAX1030x;
 					data.timestamp_ms = osKernelGetTickCount();
@@ -154,26 +154,28 @@ void SensorHandler::taskLoop() {
 }
 void SensorHandler::publishToAll(SensorData data) {
 	//TODO rate limit the sending to UI, find a better fix
-    uint32_t lastUISend = 0;
-    const uint32_t UI_UPDATE_MS = 33; // ~30fps
-    uint32_t now = osKernelGetTickCount();
-    if (now - lastUISend >= UI_UPDATE_MS) {
-    	osStatus_t stat = osOK;
-    	uint32_t cnt = osMessageQueueGetCount(mUIQueue);
-    	if(USE_UI && mUIQueue != nullptr) {
-    		// No need to notify the UI Task as it triggers every tick (60Hz)
-    		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
-    	}
-    	if(USE_MQTT) {
-    		// TODO implement MQTT Task
-    		stat = osMessageQueuePut(mUartQueue, &data, 0, 0);
+	uint32_t lastUISend = 0;
+	const uint32_t UI_UPDATE_MS = 33; // ~30fps
+	uint32_t now = osKernelGetTickCount();
+	if (now - lastUISend >= UI_UPDATE_MS) {
+		osStatus_t stat = osOK;
+		//uint32_t cnt = osMessageQueueGetCount(mUIQueue);
+		if (USE_UI && mUIQueue != nullptr) {
+			// No need to notify the UI Task as it triggers every tick (60Hz)
+			stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
+		}
+		if (USE_MQTT) {
+			// TODO implement MQTT Task
+			stat = osMessageQueuePut(mUartQueue, &data, 0, 0);
 
-    		if(stat == osOK) {notify_UartTask();}
-    	}
-    	if(stat != osOK){
-    		__BKPT();
-    	}
-        lastUISend = now;
-    }
+			if (stat == osOK) {
+				notify_UartTask();
+			}
+		}
+		if (stat != osOK) {
+			__BKPT();
+		}
+		lastUISend = now;
+	}
 
 }
