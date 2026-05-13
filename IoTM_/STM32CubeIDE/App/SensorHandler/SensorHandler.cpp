@@ -15,6 +15,8 @@ static const SensorType ADC_CHANNEL_TYPE[3] = { SensorType::EMG,
 SensorHandler *SensorHandler::sInstance = nullptr;
 static osThreadId_t tSensorHandlerHandle;
 
+extern void notify_UartTask();
+
 extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 		const osThreadAttr_t *attr) {
 	SensorHandler::start(config, attr);
@@ -68,6 +70,7 @@ void SensorHandler::init(const SensorHandlerConfig *config) {
 	mUIQueue = mConfig.uiQueue;
 	mAdcQueue = mConfig.adcQueue;
 	mMax3010xQueue = mConfig.max3010xQueue;
+	mUartQueue = mConfig.uartQueue;
 	mUiSem = mConfig.uiSem;
 }
 
@@ -163,6 +166,9 @@ void SensorHandler::publishToAll(SensorData data) {
     	}
     	if(USE_MQTT) {
     		// TODO implement MQTT Task
+    		stat = osMessageQueuePut(mUartQueue, &data, 0, 0);
+
+    		if(stat == osOK) {notify_UartTask();}
     	}
     	if(stat != osOK){
     		__BKPT();

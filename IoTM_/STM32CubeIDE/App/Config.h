@@ -95,6 +95,9 @@ typedef enum {
  * #define SENSOR_HANDLER_NOTIFYBITS_ADC_ERROR        (1UL << 3)
  * usw...
  */
+
+// UART task notify bits
+#define UART_HANDLER_NEW_TX_DATA (1UL << 0)
 #ifdef __cplusplus
 }
 #endif

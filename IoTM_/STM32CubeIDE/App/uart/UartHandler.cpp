@@ -8,6 +8,7 @@
 #include <uart/UartHandler.h>
 
 static UartHandler uartHandlerInstance;
+static TaskHandle_t uartTaskHandle = nullptr;
 extern uint8_t UI_READY;
 
 
@@ -23,6 +24,13 @@ extern "C" void* UartHandlerGetInstance(void) {
 extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 
 	uartHandlerInstance.onTxComplete(huart);
+}
+
+extern "C" void notify_UartTask(){
+	if (uartTaskHandle != nullptr) {
+		xTaskNotify(uartTaskHandle,
+				UART_HANDLER_NEW_TX_DATA, eSetBits);
+	}
 }
 
 static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData* data)
@@ -90,6 +98,9 @@ osStatus_t UartHandler::init(uartConfig config) {
 	mTxDoneSem = osSemaphoreNew(1, 1, NULL);  // starts available
 	mUart = config.uart;
 	mQueue = config.queue;
+	//TODO clean up pt 2:
+	mTaskHandle = xTaskGetCurrentTaskHandle();
+	uartTaskHandle = xTaskGetCurrentTaskHandle();
 	osStatus_t stat = osOK;
 	return stat;
 }
@@ -100,41 +111,51 @@ void UartHandler::run() {
 	uint8_t batchCount = 0;
 	SensorType batchType = SENSOR_NONE;
 	uint32_t batchStartTs = 0;
+	uint32_t bits = 0;
 
 	while (1) {
 		while(!UI_READY) {
 			osDelay(50);
 		}
-		osStatus_t status = osMessageQueueGet(mQueue, &incoming, NULL,
-		TASK_QUEUE_TIMEOUT);
 
-		if (status == osOK) {
-			// new data with different sensor type
-			if (batchCount > 0 && incoming.type != batchType) {
-				flushBatch(&batch, batchCount, batchType, batchStartTs);
-				batchCount = 0;
+		// Wait for notification from Sensor Handler Task
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
+
+		if(bits & UART_HANDLER_NEW_TX_DATA) {
+			//TODO maybe flush queue? see if it can react fast enough
+			osStatus_t status = osMessageQueueGet(mQueue, &incoming, NULL,
+			TASK_QUEUE_TIMEOUT);
+
+			if (status == osOK) {
+				// new data with different sensor type
+				if (batchCount > 0 && incoming.type != batchType) {
+					flushBatch(&batch, batchCount, batchType, batchStartTs);
+					batchCount = 0;
+				}
+
+				// Start a new batch
+				if(batchCount == 0){
+					batchType    = incoming.type;
+					batchStartTs = incoming.timestamp_ms;
+				}
+
+				// Fill batch
+				accumulateSample(&batch, batchCount++, &incoming);
+
+				if(batchCount >= TX_BATCH_SIZE) {
+					flushBatch(&batch, batchCount, batchType, batchStartTs);
+					batchCount = 0;
+				}
+			}
+			else if (status == osErrorTimeout) {
+				if(batchCount > 0 ) {
+					flushBatch(&batch, batchCount, batchType, batchStartTs);
+					batchCount = 0;
+				}
 			}
 
-			// Start a new batch
-			if(batchCount == 0){
-                batchType    = incoming.type;
-                batchStartTs = incoming.timestamp_ms;
-			}
-
-			// Fill batch
-			accumulateSample(&batch, batchCount++, &incoming);
-
-			if(batchCount >= TX_BATCH_SIZE) {
-				flushBatch(&batch, batchCount, batchType, batchStartTs);
-				batchCount = 0;
-			}
 		}
-		else if (status == osErrorTimeout) {
-			if(batchCount > 0 ) {
-				flushBatch(&batch, batchCount, batchType, batchStartTs);
-				batchCount = 0;
-			}
-		}
+
 	}
 }
 

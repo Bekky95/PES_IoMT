@@ -255,10 +255,12 @@ void MX_FREERTOS_Init(void) {
 		uart_config.queue = sensorHandler_to_UartHandle;
 		uart_config.uart = &huart2;
 		osStatus_t stat = uartInit(uart_config);
-		/*TODO: check if needed, scheduler should still start even without mqtt connection:
-		if (stat != osOK)
+		//TODO: check if needed, scheduler should still start even without mqtt connection:
+		if (stat != osOK) {
 			Error_Handler();
-			*/
+		}
+
+		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance, &uartTask_attributes);
 
 	}
 

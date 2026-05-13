@@ -46,6 +46,7 @@ private:
 	UART_HandleTypeDef *mUart;
 	osMessageQueueId_t mQueue;
 	osSemaphoreId_t mTxDoneSem;
+	TaskHandle_t mTaskHandle = nullptr;
 };
 
 #endif /* APP_UART_UARTHANDLER_H_ */
