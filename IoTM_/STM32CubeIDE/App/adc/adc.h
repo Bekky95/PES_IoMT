@@ -41,7 +41,7 @@ private:
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	uint16_t 			mDmaBuffer[ADC_CH_COUNT];
+	uint16_t 			mDmaBuffer[ADC_CH_COUNT]; //TODO maybe increase? to something like ch count * 3
 
 
 

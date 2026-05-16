@@ -15,7 +15,7 @@ static const SensorType ADC_CHANNEL_TYPE[3] = { SensorType::EMG,
 SensorHandler *SensorHandler::sInstance = nullptr;
 static osThreadId_t tSensorHandlerHandle;
 
-extern void notify_UartTask();
+extern "C" void notify_UartTask();
 
 extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 		const osThreadAttr_t *attr) {
@@ -100,7 +100,7 @@ void SensorHandler::taskLoop() {
 		//osStatus_t status = osOK;
 
 		// Wait for notification from other tasks
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
 
 		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 

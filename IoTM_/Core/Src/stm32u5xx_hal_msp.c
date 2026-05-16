@@ -143,8 +143,8 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     NodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
     NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
     NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
-    NodeConfig.Init.SrcBurstLength = 3;
-    NodeConfig.Init.DestBurstLength = 3;
+    NodeConfig.Init.SrcBurstLength = 1;
+    NodeConfig.Init.DestBurstLength = 1;
     NodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT1|DMA_DEST_ALLOCATED_PORT0;
     NodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
     NodeConfig.Init.Mode = DMA_NORMAL;
@@ -167,7 +167,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     }
 
     handle_GPDMA1_Channel0.Instance = GPDMA1_Channel0;
-    handle_GPDMA1_Channel0.InitLinkedList.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+    handle_GPDMA1_Channel0.InitLinkedList.Priority = DMA_LOW_PRIORITY_MID_WEIGHT;
     handle_GPDMA1_Channel0.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
     handle_GPDMA1_Channel0.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
     handle_GPDMA1_Channel0.InitLinkedList.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;

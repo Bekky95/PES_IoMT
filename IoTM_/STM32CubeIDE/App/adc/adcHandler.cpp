@@ -72,6 +72,7 @@ osStatus_t adcHandler::init(adcConfig config) {
 void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 	/// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
+	if(!mTaskHandle) return;
 	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_ERROR_CALLBACK, eSetBits, &xHigherPriorityTaskWoken);
@@ -111,7 +112,7 @@ void adcHandler::run() {
 	while(1) {
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
 
 		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
 			AdcSnapshot snapshot;

@@ -26,6 +26,9 @@ extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	uartHandlerInstance.onTxComplete(huart);
 }
 
+extern "C" osStatus_t uartInit(uartConfig cfg) {
+	return uartHandlerInstance.init(cfg);
+}
 extern "C" void notify_UartTask(){
 	if (uartTaskHandle != nullptr) {
 		xTaskNotify(uartTaskHandle,
@@ -119,7 +122,7 @@ void UartHandler::run() {
 		}
 
 		// Wait for notification from Sensor Handler Task
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, portMAX_DELAY);
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
 
 		if(bits & UART_HANDLER_NEW_TX_DATA) {
 			//TODO maybe flush queue? see if it can react fast enough

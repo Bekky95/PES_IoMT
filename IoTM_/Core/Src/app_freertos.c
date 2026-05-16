@@ -50,11 +50,10 @@ extern void ADCHandler_TaskEntry(void *arg);
 void StartAdcSensors(void *argument);
 
 // UART <-> MQTT Task
-extern osStatus_t uartInit(uartConfig cf);
-void StartUartTask(void* argument);
-extern void UartHandler_TaskEntry(void* arg);
+extern osStatus_t uartInit(uartConfig cfg);
+void StartUartTask(void *argument);
+extern void UartHandler_TaskEntry(void *arg);
 extern void* UartHandlerGetInstance(void);
-
 
 extern const QueueHandle_t getSensorQueue(void);
 #ifdef __cplusplus
@@ -83,7 +82,7 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
 const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
 
 /* Definitions for sp02Task */
 osThreadId_t sp02TaskHandle;
@@ -96,15 +95,15 @@ const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 /* Definitions for adcSensorsTask */
 osThreadId_t adcSensorsTaskHandle;
 const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
 osMessageQueueId_t adc_to_SensorHandlerHandle;
 const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 		"adc_SensorHandler_Queue" };
 
 /* Definitions for UART <-> MQTT task */
 osThreadId_t uartTask;
-const osThreadAttr_t uartTask_attributes = { .name = "uartTask",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
+const osThreadAttr_t uartTask_attributes = { .name = "uartTask", .priority =
+		(osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
 osMessageQueueId_t sensorHandler_to_UartHandle;
 const osMessageQueueAttr_t sensorHandler_to_Uart_attributes = { .name =
 		"sensorHandler_to_Uart" };
@@ -113,10 +112,7 @@ osMessageQueueId_t uiQueue;
 const osMessageQueueAttr_t uiQueueAttributes = { .name = "uiQueue" };
 /* Definitions for UIQueueSem */
 osSemaphoreId_t UIQueueSemHandle;
-const osSemaphoreAttr_t UIQueueSem_attributes = {
-  .name = "UIQueueSem"
-};
-
+const osSemaphoreAttr_t UIQueueSem_attributes = { .name = "UIQueueSem" };
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -167,14 +163,12 @@ void vApplicationIdleHook(void) {
 
 /* USER CODE BEGIN 1 */
 /* Functions needed when configGENERATE_RUN_TIME_STATS is on */
-__weak void configureTimerForRunTimeStats(void)
-{
+__weak void configureTimerForRunTimeStats(void) {
 
 }
 
-__weak unsigned long getRunTimeCounterValue(void)
-{
-return 0;
+__weak unsigned long getRunTimeCounterValue(void) {
+	return 0;
 }
 /* USER CODE END 1 */
 
@@ -215,8 +209,8 @@ void MX_FREERTOS_Init(void) {
 
 	// Init and add SP02 sensor task
 	if (USE_SP02_SENSOR) {
-		sp02_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(MAX3010x_Data),
-				&sp02_to_SensorHandler_attributes);
+		sp02_to_SensorHandlerHandle = osMessageQueueNew(16,
+				sizeof(MAX3010x_Data), &sp02_to_SensorHandler_attributes);
 
 		SpO2Config sP02_Config;
 		sP02_Config.queue = sp02_to_SensorHandlerHandle;
@@ -230,7 +224,7 @@ void MX_FREERTOS_Init(void) {
 				&sp02Task_attributes);
 	}
 	// Init and add adc sensor task
-	if(USE_ADC_SENSORS) {
+	if (USE_ADC_SENSORS) {
 		/* creation of adc_to_SensorHandler */
 		adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
 				&adc_to_SensorHandler_attributes);
@@ -245,12 +239,13 @@ void MX_FREERTOS_Init(void) {
 			Error_Handler();
 
 		/* creation of adcSensorsTask */
-		adcSensorsTaskHandle = osThreadNew(StartAdcSensors, adcHandlerGetInstance(),
-				&adcSensorsTask_attributes);
+		adcSensorsTaskHandle = osThreadNew(StartAdcSensors,
+				adcHandlerGetInstance(), &adcSensorsTask_attributes);
 	}
 
-	if(USE_MQTT) {
-		sensorHandler_to_UartHandle = osMessageQueueNew(16, sizeof(SensorData), &sensorHandler_to_Uart_attributes);
+	if (USE_MQTT) {
+		sensorHandler_to_UartHandle = osMessageQueueNew(16, sizeof(SensorData),
+				&sensorHandler_to_Uart_attributes);
 		uartConfig uart_config;
 		uart_config.queue = sensorHandler_to_UartHandle;
 		uart_config.uart = &huart2;
@@ -260,16 +255,16 @@ void MX_FREERTOS_Init(void) {
 			Error_Handler();
 		}
 
-		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance, &uartTask_attributes);
+		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance,
+				&uartTask_attributes);
 
 	}
-
 
 	/* add threads, ... */
 	SensorHandlerConfig config = { .hadc = &hadc1, .adcChannelCount = 1, .hi2c =
 			&hi2c1, .uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle,
-			.max3010xQueue = sp02_to_SensorHandlerHandle, .uartQueue = sensorHandler_to_UartHandle, .uiSem =
-					UIQueueSemHandle, };
+			.max3010xQueue = sp02_to_SensorHandlerHandle, .uartQueue =
+					sensorHandler_to_UartHandle, .uiSem = UIQueueSemHandle, };
 
 	SensorHandler_Start(&config, &tSensorHandler_attributes);
   /* USER CODE END RTOS_THREADS */
@@ -308,9 +303,8 @@ QueueHandle_t getSensorQueue(void) {
  * @retval None
  */
 /* USER CODE END Header_startSp02 */
-void startSp02(void *argument)
-{
-  /* USER CODE BEGIN sp02Task */
+void startSp02(void *argument) {
+	/* USER CODE BEGIN sp02Task */
 	if (USE_SP02_SENSOR) {
 		PulsOxHandler_TaskEntry(argument);
 	}
@@ -318,9 +312,8 @@ void startSp02(void *argument)
 	for (;;) {
 		osDelay(1);
 	}
-  /* USER CODE END sp02Task */
+	/* USER CODE END sp02Task */
 }
-
 
 /* USER CODE BEGIN Header_StartAdcSensors */
 /**
@@ -329,9 +322,8 @@ void startSp02(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartAdcSensors */
-void StartAdcSensors(void *argument)
-{
-  /* USER CODE BEGIN adcSensorsTask */
+void StartAdcSensors(void *argument) {
+	/* USER CODE BEGIN adcSensorsTask */
 	/* Infinite loop */
 	if (USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
 		ADCHandler_TaskEntry(argument);
@@ -344,7 +336,7 @@ void StartAdcSensors(void *argument)
 
 // Entry for uart task
 void StartUartTask(void *argument) {
-	if(USE_MQTT) {
+	if (USE_MQTT) {
 		UartHandler_TaskEntry(argument);
 	}
 	// Should never land here!!!
