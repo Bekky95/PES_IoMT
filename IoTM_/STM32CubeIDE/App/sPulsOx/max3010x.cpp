@@ -603,7 +603,7 @@ uint16_t MAX3010x::check(void) {
 
 		// Point the sensor's internal pointer at the FIFO data register
 		uint8_t reg = MAX30105_FIFODATA;
-		HAL_I2C_Master_Transmit(mI2c, _i2caddr, &reg, 1, HAL_MAX_DELAY);
+		HAL_I2C_Master_Transmit(mI2c, _i2caddr, &reg, 1, pdMS_TO_TICKS(10));
 
 		while (bytesLeftToRead > 0) {
 			int toGet = bytesLeftToRead;
@@ -618,7 +618,7 @@ uint16_t MAX3010x::check(void) {
 			// Read toGet bytes in one burst
 			uint8_t buf[toGet];
 			HAL_I2C_Master_Receive(mI2c, _i2caddr, buf, toGet,
-			HAL_MAX_DELAY);
+					pdMS_TO_TICKS(10));
 
 			uint8_t *p = buf;
 
@@ -680,7 +680,7 @@ bool MAX3010x::safeCheck(TickType_t  maxTimeToCheck) {
 uint8_t MAX3010x::readRegister8(uint8_t addr) {
 	uint8_t data = 0;
 	if (HAL_I2C_Mem_Read(mI2c, _i2caddr, addr, I2C_MEMADD_SIZE_8BIT, &data, 1,
-	HAL_MAX_DELAY) != HAL_OK) {
+			pdMS_TO_TICKS(10)) != HAL_OK) {
 		return 0;
 	}
 	return data;
@@ -688,7 +688,7 @@ uint8_t MAX3010x::readRegister8(uint8_t addr) {
 
 HAL_StatusTypeDef MAX3010x::writeRegister8(uint8_t addr, uint8_t data) {
 	return HAL_I2C_Mem_Write(mI2c, _i2caddr, addr, I2C_MEMADD_SIZE_8BIT, &data,
-			1, HAL_MAX_DELAY);
+			1, pdMS_TO_TICKS(10));
 }
 
 HAL_StatusTypeDef MAX3010x::init(void) {

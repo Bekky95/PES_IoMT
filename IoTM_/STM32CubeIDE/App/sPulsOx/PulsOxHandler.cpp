@@ -6,11 +6,17 @@
  */
 
 #include <sPulsOx/PulsOxHandler.h>
+extern uint8_t UI_READY;
 
 // TODO maybe protect this in a giver function
 extern osThreadId_t tSensorHandlerHandle;
-
 static PulsOxHandler pulsOxHandlerInstance;
+extern I2C_HandleTypeDef hi2c1;
+
+extern "C" void HAL_I2C_ErrorCallback(I2C_HandleTypeDef* hi2c) {
+	pulsOxHandlerInstance.errHandler(hi2c);
+}
+
 extern "C" void* pulsOxHandlerGetInstance() {
 	return static_cast<void*>(&pulsOxHandlerInstance);
 }
@@ -24,6 +30,11 @@ extern "C" osStatus_t sP02Init(SpO2Config config) {
 
 extern "C" void SensorHandler_NotifyMAX();
 
+void PulsOxHandler::errHandler(I2C_HandleTypeDef* hi2c) {
+	if(hi2c == &hi2c1) {
+		static uint32_t i2c = hi2c->ErrorCode;
+	}
+}
 osStatus_t PulsOxHandler::init(SpO2Config cfg) {
 	mMAX3010x = MAX3010x(cfg.hi2c);
 	mQueue = cfg.queue;
@@ -37,17 +48,6 @@ osStatus_t PulsOxHandler::init(SpO2Config cfg) {
 		vTaskSuspend(nullptr);
 		return status;
 	}
-
-	//Setup Sensor
-	uint8_t ledBrightness = 60; //Options: 0=Off to 255=50mA
-	uint8_t sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
-	uint8_t ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
-	uint8_t sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
-	int pulseWidth = 411; //Options: 69, 118, 215, 411
-	int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
-
-	mMAX3010x.setup(ledBrightness, sampleAverage, ledMode, sampleRate,
-			pulseWidth, adcRange);
 
 	return status;
 }
@@ -64,6 +64,16 @@ void PulsOxHandler::run() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
 	uint32_t bits = 0;
+	//Setup Sensor
+	uint8_t ledBrightness = 60; //Options: 0=Off to 255=50mA
+	uint8_t sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
+	uint8_t ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
+	uint8_t sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+	int pulseWidth = 411; //Options: 69, 118, 215, 411
+	int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
+
+	mMAX3010x.setup(ledBrightness, sampleAverage, ledMode, sampleRate,
+			pulseWidth, adcRange);
 
 	MAX3010x_Data data = { };
 
@@ -73,7 +83,7 @@ void PulsOxHandler::run() {
 		// Block in small yields until new data is ready
 		while (!mMAX3010x.available()) {
 			mMAX3010x.check();
-			osDelay(0.5);
+			osDelay(pdMS_TO_TICKS(1000));
 		}
 
 		redBuffer[i] = mMAX3010x.getRed();
@@ -87,6 +97,9 @@ void PulsOxHandler::run() {
 
 	// main loop
 	while (USE_SP02_SENSOR) {
+		while(!UI_READY) {
+			osDelay(1000);
+		}
 		// Shift last 75 samples down, discarding oldest 25
 		for (uint8_t i = 25; i < 100; i++) {
 			redBuffer[i - 25] = redBuffer[i];
@@ -97,7 +110,7 @@ void PulsOxHandler::run() {
 		for (uint8_t i = 75; i < 100; i++) {
 			while (!mMAX3010x.available()) {
 				mMAX3010x.check();
-				osDelay(1);
+				osDelay(pdMS_TO_TICKS(1000));
 			}
 
 			redBuffer[i] = mMAX3010x.getRed();

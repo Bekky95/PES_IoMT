@@ -10,7 +10,7 @@
 
 AdcDma::AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels) {
 	//configASSERT(numChannels == hadc->Init.NbrOfConversion);
-    if (!hadc || numChannels != MAX_CHANNELS)
+    if (!hadc || numChannels != ADC_CH_COUNT)
     {
         mHadc        = nullptr;
         mNumChannels = 0;
@@ -37,17 +37,16 @@ HAL_StatusTypeDef AdcDma::start() {
 	if(!mHadc->DMA_Handle) {
 		return HAL_ERROR;
 	}
-	return HAL_ADC_Start_DMA(mHadc, mDmaBuffer, (uint32_t)mNumChannels);
+	return HAL_ADC_Start_DMA(mHadc, (uint32_t*)mDmaBuffer, (uint32_t)mNumChannels);
 
 }
 
 HAL_StatusTypeDef AdcDma::stop() {
 	HAL_StatusTypeDef stat =  HAL_ADC_Stop_DMA(mHadc);
-	// TODO: move delete to destructor
 	return stat;
 }
 
-uint32_t* AdcDma::getValues() {
+uint16_t* AdcDma::getValues() {
 	return mDmaBuffer;
 }
 
