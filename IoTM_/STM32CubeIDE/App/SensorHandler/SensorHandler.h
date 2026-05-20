@@ -70,7 +70,7 @@ private:
 
 	//osEventFlagsId_t	mflags;
 	QueueHandle_t		mUIQueue = nullptr	;
-	osMessageQueueId_t	mAdcQueue = nullptr;
+	QueueHandle_t	mAdcQueue = nullptr;
 	osMessageQueueId_t	mMax3010xQueue= nullptr;
 	osMessageQueueId_t  mUartQueue = nullptr;
 	TaskHandle_t		mTaskHandle;

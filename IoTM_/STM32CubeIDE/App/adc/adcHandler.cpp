@@ -69,6 +69,7 @@ osStatus_t adcHandler::init(adcConfig config) {
     }
     return stat;
 }
+
 void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 	/// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
@@ -112,17 +113,16 @@ void adcHandler::run() {
 	while(1) {
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
 
 		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
 			AdcSnapshot snapshot;
 			snapshot.timestamp_ms = osKernelGetTickCount();
 
 			for(uint8_t i = 0; i < ADC_CH_COUNT; i++) {
-				snapshot.values[i] = mAdc.GetChValVolt(i);
+				snapshot.values[i] = mAdc.getChannelValue(i);
 			}
 			osMessageQueuePut(mQueue, &snapshot, 0, 0);
-			//TODO: check initalization of senorhandler task before calling this? Needed?
 			SensorHandler_NotifyADC();
 		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {

@@ -33,7 +33,7 @@ public:
 	HAL_StatusTypeDef stop();
 
 	uint16_t* getValues();
-	float getChannelValue(uint8_t ch) const;
+	uint16_t getChannelValue(uint8_t ch) const;
 	float GetChValVolt(uint8_t ch) const;
 
 

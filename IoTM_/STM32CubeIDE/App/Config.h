@@ -14,19 +14,27 @@ extern "C" {
 // Debug defines, determine which senor is currently used
 #define USE_EEG_SENSOR	true
 #define USE_EMG_SENSOR  true
-#define USE_EKG_SENSOR  true
+#define USE_EKG_SENSOR  true		//PIN: PB-1
 #define USE_ADC_SENSORS	(USE_EEG_SENSOR | USE_EMG_SENSOR |USE_EKG_SENSOR)
 #define USE_SP02_SENSOR false
 
 #define USE_UI 			true
-#define USE_MQTT   false
+#define USE_MQTT   		false
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
 
 typedef enum {
-	MAX1030x, EMG, EEG, EKG, SENSOR_NONE
+	MAX1030x, ADC_COMBINED, EMG, EEG, EKG, MAX_Sp02, MAX_HR, SENSOR_NONE
 } SensorType;
+
+// helper function to show that MAX1030x holds both sensor types
+static inline int is_max_sensor(SensorType t) {
+	return t == MAX1030x || t == MAX_Sp02 || t == MAX_HR;
+}
+static inline int is_adc_sensor(SensorType t) {
+	return t == EMG || t == EKG || t == EKG || t == ADC_COMBINED;
+}
 
 typedef struct {
 	int32_t spo2;
@@ -35,15 +43,19 @@ typedef struct {
 	int8_t validHeartRate;
 } MAX3010x_Data;
 
+typedef struct {
+	uint16_t emg;
+	uint16_t ekg;
+	uint16_t eeg;
+} AdcSensorData;
+
 //TODO if needed change this to hold data type + pointer to data to save space
 typedef struct {
 	SensorType type;
 	uint32_t timestamp_ms;
 
 	union {
-		uint16_t EmgData;
-		uint16_t EegData;
-		uint16_t EkgData;
+		AdcSensorData AdcData;
 		MAX3010x_Data SpO2Data;
 	};
 } SensorData;
@@ -53,7 +65,7 @@ typedef struct {
 	uint8_t adcChannelCount;
 	I2C_HandleTypeDef *hi2c;
 	QueueHandle_t uiQueue;
-	osMessageQueueId_t adcQueue;
+	QueueHandle_t adcQueue;
 	osMessageQueueId_t max3010xQueue;
 	osMessageQueueId_t uartQueue;
 	SemaphoreHandle_t uiSem;
@@ -73,18 +85,15 @@ typedef struct {
 typedef struct {
 	osMessageQueueId_t queue;
 	UART_HandleTypeDef *uart;
-}uartConfig;
+} uartConfig;
 
 typedef struct {
-    float values[ADC_CH_COUNT];
-    uint32_t timestamp_ms;
+	uint16_t values[ADC_CH_COUNT];
+	uint32_t timestamp_ms;
 } AdcSnapshot;
 
 typedef enum {
-    ADC_CH_EMG  = 0,
-    ADC_CH_EEG  = 1,
-    ADC_CH_EKG  = 2,
-
+	ADC_CH_EMG = 0, ADC_CH_EEG = 1, ADC_CH_EKG = 2,
 } AdcChannel;
 
 // Sensor_Handler_Notifybits

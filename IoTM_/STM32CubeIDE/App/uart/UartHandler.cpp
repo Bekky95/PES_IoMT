@@ -40,11 +40,16 @@ static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData
 {
     switch (data->type)
     {
-        case SensorType::EMG:  batch->raw[index] = data->EmgData;  break;
-        case SensorType::EEG:  batch->raw[index] = data->EegData;  break;
-        case SensorType::EKG:  batch->raw[index] = data->EkgData;  break;
-        case SensorType::MAX1030x: batch->spo2[index] = data->SpO2Data; break;
-        default: break;
+        case SensorType::ADC_COMBINED:
+            batch->emg[index] = data->AdcData.emg;
+            batch->eeg[index] = data->AdcData.eeg;
+            batch->ekg[index] = data->AdcData.ekg;
+            break;
+        case SensorType::MAX1030x:
+            batch->spo2[index] = data->SpO2Data;
+            break;
+        default:
+            break;
     }
 }
 
@@ -77,22 +82,22 @@ void UartHandler::flushBatch(const BatchBuffer*batch, uint8_t count, SensorType 
 	pkt.sensorType = (uint8_t) type;
 	pkt.timestamp_ms = firstTimestamp;
 	pkt.numSamples = count;
-	uint16_t payloadSize;
+	uint16_t payloadSize = 0;
 
 	if(type == SensorType::MAX1030x) {
-        memcpy(pkt.spo2Samples, batch->spo2, count * sizeof(MAX3010x_Data));
-        payloadSize = count * sizeof(MAX3010x_Data);
+	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(float));
+	    payloadSize = count * sizeof(float) * 3;
 	}
-    else
-    {
-        memcpy(pkt.rawSamples, batch->raw, count * sizeof(uint16_t));
-        payloadSize = count * sizeof(uint16_t);
-    }
-	//TODO: see if crc is needed?
-	// Calculate length of data packet;
-	uint16_t len = offsetof(TxPacket, rawSamples) + payloadSize;
-			//TODO add if using crc:+ sizeof(uint16_t);
-	// Transmit data Packet, semaphore freed in TX complete callback
+	else if(type == SensorType::ADC_COMBINED) {
+	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(float));
+	    payloadSize = count * sizeof(float) * 3;
+	}
+
+	uint16_t len = offsetof(TxPacket, adcSamples) + payloadSize;
 	HAL_UART_Transmit_DMA(mUart, (uint8_t*) &pkt, len);
 }
 

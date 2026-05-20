@@ -50,7 +50,7 @@ uint16_t* AdcDma::getValues() {
 	return mDmaBuffer;
 }
 
-float AdcDma::getChannelValue(uint8_t ch) const{
+uint16_t AdcDma::getChannelValue(uint8_t ch) const{
 	return mDmaBuffer[ch];
 }
 

@@ -120,7 +120,7 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
     n_th1 +=  an_x[k];
   }
   n_th1=  n_th1/ ( BUFFER_SIZE);
-  if( n_th1<30) n_th1=30; // min allowed
+  if( n_th1<50) n_th1=50; // min allowed
   if( n_th1>60) n_th1=60; // max allowed
 
   for ( k=0 ; k<15;k++) an_ir_valley_locs[k]=0;

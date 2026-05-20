@@ -87,7 +87,7 @@ const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
 /* Definitions for sp02Task */
 osThreadId_t sp02TaskHandle;
 const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		(osPriority_t) osPriorityAboveNormal, .stack_size = 512 * 4 };
 osMessageQueueId_t sp02_to_SensorHandlerHandle;
 const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 		"sp02_SensorHandler_Queue" };
@@ -126,7 +126,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t GUI_TaskHandle;
 const osThreadAttr_t GUI_Task_attributes = {
   .name = "GUI_Task",
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
 
@@ -142,8 +142,6 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
 void vApplicationIdleHook(void);
-void configureTimerForRunTimeStats(void);
-unsigned long getRunTimeCounterValue(void);
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook(void) {
@@ -160,17 +158,6 @@ void vApplicationIdleHook(void) {
 	vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
 }
 /* USER CODE END 2 */
-
-/* USER CODE BEGIN 1 */
-/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
-__weak void configureTimerForRunTimeStats(void) {
-
-}
-
-__weak unsigned long getRunTimeCounterValue(void) {
-	return 0;
-}
-/* USER CODE END 1 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -196,7 +183,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	uiQueue = osMessageQueueNew(500, sizeof(SensorData), &uiQueueAttributes);
+	uiQueue = osMessageQueueNew(1000, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */

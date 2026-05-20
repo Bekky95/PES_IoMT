@@ -26,3 +26,7 @@ void UIPresenter::onSensorUpdated(const SensorData& data) {
 	view.updateGraph(data);
 
 }
+
+void UIPresenter::invalidateGraph() {
+	view.invalidateGraph();
+}

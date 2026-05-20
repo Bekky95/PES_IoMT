@@ -83,7 +83,7 @@ void PulsOxHandler::run() {
 		// Block in small yields until new data is ready
 		while (!mMAX3010x.available()) {
 			mMAX3010x.check();
-			osDelay(pdMS_TO_TICKS(1000));
+			osDelay(pdMS_TO_TICKS(10));
 		}
 
 		redBuffer[i] = mMAX3010x.getRed();
@@ -110,7 +110,7 @@ void PulsOxHandler::run() {
 		for (uint8_t i = 75; i < 100; i++) {
 			while (!mMAX3010x.available()) {
 				mMAX3010x.check();
-				osDelay(pdMS_TO_TICKS(1000));
+				osDelay(pdMS_TO_TICKS(10));
 			}
 
 			redBuffer[i] = mMAX3010x.getRed();
@@ -123,7 +123,7 @@ void PulsOxHandler::run() {
 				(int32_t*) &data.spo2, (int8_t*) &data.validSPO2,
 				(int32_t*) &data.heartRate, (int8_t*) &data.validHeartRate);
 
-		//TODO send data in queue to sensor handler and set flags
+
 		osMessageQueuePut(mQueue, &data, 0, 0);
 		SensorHandler_NotifyMAX();
 	}
