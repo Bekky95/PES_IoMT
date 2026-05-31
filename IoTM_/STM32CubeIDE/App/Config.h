@@ -23,6 +23,13 @@ extern "C" {
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
+#define ADC_BLOCK_SIZE	10
+
+
+// ADC data reader helper
+#define ADC_EMG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 0])
+#define ADC_EKG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 1])
+#define ADC_EEG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 2])
 
 typedef enum {
 	MAX1030x, ADC_COMBINED, EMG, EEG, EKG, MAX_Sp02, MAX_HR, SENSOR_NONE
@@ -49,13 +56,17 @@ typedef struct {
 	uint16_t eeg;
 } AdcSensorData;
 
+typedef struct {
+	uint16_t values[ADC_CH_COUNT * ADC_BLOCK_SIZE];
+	uint8_t  count;
+} AdcSnapshot;
 //TODO if needed change this to hold data type + pointer to data to save space
 typedef struct {
 	SensorType type;
 	uint32_t timestamp_ms;
 
 	union {
-		AdcSensorData AdcData;
+		AdcSnapshot AdcData;
 		MAX3010x_Data SpO2Data;
 	};
 } SensorData;
@@ -87,10 +98,6 @@ typedef struct {
 	UART_HandleTypeDef *uart;
 } uartConfig;
 
-typedef struct {
-	uint16_t values[ADC_CH_COUNT];
-	uint32_t timestamp_ms;
-} AdcSnapshot;
 
 typedef enum {
 	ADC_CH_EMG = 0, ADC_CH_EEG = 1, ADC_CH_EKG = 2,

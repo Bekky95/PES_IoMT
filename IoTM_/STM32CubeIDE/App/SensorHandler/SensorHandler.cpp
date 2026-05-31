@@ -23,12 +23,17 @@ extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 	SensorHandler::start(config, attr);
 }
 
-extern "C" void SensorHandler_NotifyADC() {
-	if (tSensorHandlerHandle != nullptr) {
-		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),
-				SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
-	}
+extern "C" void SensorHandler_ISRNotifyADC(BaseType_t* pxHigherPriorityTaskWoken) {
+    if (tSensorHandlerHandle != nullptr) {
+        xTaskNotifyFromISR(
+            static_cast<TaskHandle_t>(tSensorHandlerHandle),
+            SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA,
+            eSetBits,
+            pxHigherPriorityTaskWoken
+        );
+    }
 }
+
 
 extern "C" void SensorHandler_NotifyMAX() {
 	if (tSensorHandlerHandle != nullptr) {
@@ -63,7 +68,6 @@ void SensorHandler::start(SensorHandlerConfig *config,
 			attr);
 }
 
-
 void SensorHandler::init(const SensorHandlerConfig *config) {
 	mConfig = *config;
 	mRunning = true;
@@ -93,7 +97,6 @@ void SensorHandler::taskLoop() {
 	// Notification bits
 	uint32_t bits = 0;
 
-	//TODO: fix here, read data from sensors and send to display/mqtt
 	while (mRunning) {
 		while (!UI_READY) {
 			osDelay(50);
@@ -109,17 +112,12 @@ void SensorHandler::taskLoop() {
 
 			// drain queue as there should be more than one value
 			while (osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
-
 				// ADC interrupt fired handle by passing data to sources
-					SensorData data = { };
-					data.type = SensorType::ADC_COMBINED;
-					data.timestamp_ms = adcData.timestamp_ms;
-					data.AdcData.eeg = adcData.values[0];
-					data.AdcData.emg = adcData.values[1];
-					data.AdcData.ekg = adcData.values[2];
-
-					publishToAll(data);
-
+				SensorData data = { };
+				data.type = SensorType::ADC_COMBINED;
+				data.timestamp_ms = osKernelGetTickCount();
+				data.AdcData = adcData;
+				publishToAll(data);
 
 			}
 		}
@@ -128,8 +126,8 @@ void SensorHandler::taskLoop() {
 			MAX3010x_Data MAX3010xData;
 
 			// Drain Data
-			while (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr,
-					0) == osOK) {
+			while (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr, 0)
+					== osOK) {
 				SensorData data = { };
 				data.type = SensorType::MAX1030x;
 				data.timestamp_ms = osKernelGetTickCount();
@@ -139,7 +137,7 @@ void SensorHandler::taskLoop() {
 			}
 		}
 
-		}
+	}
 
 	// terminate task if mRunning is set to false
 	__BKPT();
@@ -153,7 +151,9 @@ void SensorHandler::publishToAll(SensorData data) {
 	//if (now - lastUISend >= UI_UPDATE_MS) {
 	osStatus_t stat = osOK;
 	//uint32_t cnt = osMessageQueueGetCount(mUIQueue);
-	if (USE_UI && mUIQueue != nullptr && ((is_adc_sensor(data.type) && is_adc_sensor(_activeType))|| (is_max_sensor(data.type) && is_max_sensor(_activeType)))) {
+	if (USE_UI && mUIQueue != nullptr
+			&& ((is_adc_sensor(data.type) && is_adc_sensor(_activeType))
+					|| (is_max_sensor(data.type) && is_max_sensor(_activeType)))) {
 		// No need to notify the UI Task as it triggers every tick (60Hz)
 		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
 	}

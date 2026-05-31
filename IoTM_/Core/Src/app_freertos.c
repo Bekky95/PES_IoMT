@@ -82,7 +82,7 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
 const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 1024 * 4 };
 
 /* Definitions for sp02Task */
 osThreadId_t sp02TaskHandle;
@@ -95,7 +95,7 @@ const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 /* Definitions for adcSensorsTask */
 osThreadId_t adcSensorsTaskHandle;
 const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		.priority = (osPriority_t) osPriorityBelowNormal, .stack_size = 1024 * 4 };
 osMessageQueueId_t adc_to_SensorHandlerHandle;
 const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 		"adc_SensorHandler_Queue" };
@@ -183,7 +183,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	uiQueue = osMessageQueueNew(1000, sizeof(SensorData), &uiQueueAttributes);
+	uiQueue = osMessageQueueNew(300, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
@@ -196,7 +196,7 @@ void MX_FREERTOS_Init(void) {
 
 	// Init and add SP02 sensor task
 	if (USE_SP02_SENSOR) {
-		sp02_to_SensorHandlerHandle = osMessageQueueNew(16,
+		sp02_to_SensorHandlerHandle = osMessageQueueNew(4,
 				sizeof(MAX3010x_Data), &sp02_to_SensorHandler_attributes);
 
 		SpO2Config sP02_Config;
@@ -213,7 +213,7 @@ void MX_FREERTOS_Init(void) {
 	// Init and add adc sensor task
 	if (USE_ADC_SENSORS) {
 		/* creation of adc_to_SensorHandler */
-		adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
+		adc_to_SensorHandlerHandle = osMessageQueueNew(4, sizeof(AdcSnapshot),
 				&adc_to_SensorHandler_attributes);
 
 		adcConfig adc_Config;
@@ -231,7 +231,7 @@ void MX_FREERTOS_Init(void) {
 	}
 
 	if (USE_MQTT) {
-		sensorHandler_to_UartHandle = osMessageQueueNew(16, sizeof(SensorData),
+		sensorHandler_to_UartHandle = osMessageQueueNew(4, sizeof(SensorData),
 				&sensorHandler_to_Uart_attributes);
 		uartConfig uart_config;
 		uart_config.queue = sensorHandler_to_UartHandle;

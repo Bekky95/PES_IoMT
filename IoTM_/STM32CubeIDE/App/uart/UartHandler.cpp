@@ -41,9 +41,9 @@ static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData
     switch (data->type)
     {
         case SensorType::ADC_COMBINED:
-            batch->emg[index] = data->AdcData.emg;
-            batch->eeg[index] = data->AdcData.eeg;
-            batch->ekg[index] = data->AdcData.ekg;
+            batch->emg[index] = ADC_EMG(data->AdcData.values, index);
+            batch->eeg[index] = ADC_EEG(data->AdcData.values, index);
+            batch->ekg[index] = ADC_EKG(data->AdcData.values, index);
             break;
         case SensorType::MAX1030x:
             batch->spo2[index] = data->SpO2Data;
