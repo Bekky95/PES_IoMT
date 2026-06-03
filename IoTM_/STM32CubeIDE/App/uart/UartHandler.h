@@ -11,7 +11,7 @@
 #include "cmsis_os2.h"
 #include <cstring>
 
-#define TX_BATCH_SIZE        50
+#define TX_BATCH_SIZE 10
 #define TASK_QUEUE_TIMEOUT 10  // ms to wait on queue
 
 //TODO: maybe shrink this to only hold one adc sensor value if size it too latge
@@ -22,18 +22,18 @@ typedef struct __attribute__((packed)) {
     uint8_t   numSamples;
     union {
         struct {
-            float emg[TX_BATCH_SIZE];
-            float eeg[TX_BATCH_SIZE];
-            float ekg[TX_BATCH_SIZE];
+            uint16_t emg[TX_BATCH_SIZE];
+            uint16_t eeg[TX_BATCH_SIZE];
+            uint16_t ekg[TX_BATCH_SIZE];
         } adcSamples;
         MAX3010x_Data spo2Samples[TX_BATCH_SIZE];
     };
 } TxPacket;
 
 typedef struct {
-    float         emg[TX_BATCH_SIZE];
-    float         eeg[TX_BATCH_SIZE];
-    float         ekg[TX_BATCH_SIZE];
+	uint16_t         emg[TX_BATCH_SIZE];
+	uint16_t         eeg[TX_BATCH_SIZE];
+	uint16_t         ekg[TX_BATCH_SIZE];
     MAX3010x_Data spo2[TX_BATCH_SIZE];
     uint8_t       count;
 } BatchBuffer;

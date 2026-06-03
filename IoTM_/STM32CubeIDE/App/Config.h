@@ -19,7 +19,7 @@ extern "C" {
 #define USE_SP02_SENSOR false
 
 #define USE_UI 			true
-#define USE_MQTT   		false
+#define USE_MQTT   		true
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)

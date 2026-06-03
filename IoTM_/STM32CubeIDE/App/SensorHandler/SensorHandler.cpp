@@ -75,7 +75,7 @@ void SensorHandler::init(const SensorHandlerConfig *config) {
 	mUIQueue = mConfig.uiQueue;
 	mAdcQueue = mConfig.adcQueue;
 	mMax3010xQueue = mConfig.max3010xQueue;
-	mUartQueue = mConfig.uartQueue;
+	mUartQueue = (QueueHandle_t)mConfig.uartQueue;
 	mUiSem = mConfig.uiSem;
 }
 

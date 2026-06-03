@@ -34,6 +34,7 @@ extern "C" void notify_UartTask(){
 		xTaskNotify(uartTaskHandle,
 				UART_HANDLER_NEW_TX_DATA, eSetBits);
 	}
+	portYIELD();
 }
 
 static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData* data)
@@ -41,9 +42,11 @@ static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData
     switch (data->type)
     {
         case SensorType::ADC_COMBINED:
-            batch->emg[index] = ADC_EMG(data->AdcData.values, index);
-            batch->eeg[index] = ADC_EEG(data->AdcData.values, index);
-            batch->ekg[index] = ADC_EKG(data->AdcData.values, index);
+        	for(uint8_t i = 0; i < 10; i++){
+				batch->emg[i] = ADC_EMG(data->AdcData.values, i);
+				batch->eeg[i] = ADC_EEG(data->AdcData.values, i);
+				batch->ekg[i] = ADC_EKG(data->AdcData.values, i);
+        	}
             break;
         case SensorType::MAX1030x:
             batch->spo2[index] = data->SpO2Data;
@@ -85,15 +88,16 @@ void UartHandler::flushBatch(const BatchBuffer*batch, uint8_t count, SensorType 
 	uint16_t payloadSize = 0;
 
 	if(type == SensorType::MAX1030x) {
+		//TODO
 	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(float));
 	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(float));
 	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(float));
 	    payloadSize = count * sizeof(float) * 3;
 	}
 	else if(type == SensorType::ADC_COMBINED) {
-	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(float));
-	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(float));
-	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(uint16_t));
+	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(uint16_t));
+	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(uint16_t));
 	    payloadSize = count * sizeof(float) * 3;
 	}
 
@@ -106,9 +110,6 @@ osStatus_t UartHandler::init(uartConfig config) {
 	mTxDoneSem = osSemaphoreNew(1, 1, NULL);  // starts available
 	mUart = config.uart;
 	mQueue = config.queue;
-	//TODO clean up pt 2:
-	mTaskHandle = xTaskGetCurrentTaskHandle();
-	uartTaskHandle = xTaskGetCurrentTaskHandle();
 	osStatus_t stat = osOK;
 	return stat;
 }
@@ -121,18 +122,21 @@ void UartHandler::run() {
 	uint32_t batchStartTs = 0;
 	uint32_t bits = 0;
 
+	mTaskHandle = xTaskGetCurrentTaskHandle();
+	uartTaskHandle = xTaskGetCurrentTaskHandle();
+
 	while (1) {
-		while(!UI_READY) {
-			osDelay(50);
-		}
+//		while(!UI_READY) {
+//			osDelay(50);
+//		}
 
 		// Wait for notification from Sensor Handler Task
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
-
-		if(bits & UART_HANDLER_NEW_TX_DATA) {
+		//
+		if(bits & UART_HANDLER_NEW_TX_DATA){
+			osStatus_t status = osMessageQueueGet(mQueue, &incoming, nullptr,
+				0);
 			//TODO maybe flush queue? see if it can react fast enough
-			osStatus_t status = osMessageQueueGet(mQueue, &incoming, NULL,
-			TASK_QUEUE_TIMEOUT);
 
 			if (status == osOK) {
 				// new data with different sensor type
@@ -162,6 +166,8 @@ void UartHandler::run() {
 				}
 			}
 
+		} else {
+			osDelay(pdMS_TO_TICKS(10));
 		}
 
 	}

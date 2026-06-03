@@ -128,7 +128,7 @@ void adcHandler::run() {
 			__BKPT(0);
 			// TODO: ensure this works??
 			mAdc.stop();
-			xQueueReset(mQueue);  // discard stale snapshots before restarting
+			xQueueReset((QueueHandle_t)mQueue);  // discard stale snapshots before restarting
 			mAdc.start();
 		}
 	}
