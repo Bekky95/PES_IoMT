@@ -34,17 +34,25 @@ extern "C" void notify_UartTask(){
 		xTaskNotify(uartTaskHandle,
 				UART_HANDLER_NEW_TX_DATA, eSetBits);
 	}
+	portYIELD();
 }
 
 static void accumulateSample(BatchBuffer* batch, uint8_t index, const SensorData* data)
 {
     switch (data->type)
     {
-        case SensorType::EMG:  batch->raw[index] = data->EmgData;  break;
-        case SensorType::EEG:  batch->raw[index] = data->EegData;  break;
-        case SensorType::EKG:  batch->raw[index] = data->EkgData;  break;
-        case SensorType::MAX1030x: batch->spo2[index] = data->SpO2Data; break;
-        default: break;
+        case SensorType::ADC_COMBINED:
+        	for(uint8_t i = 0; i < 10; i++){
+				batch->emg[i] = ADC_EMG(data->AdcData.values, i);
+				batch->eeg[i] = ADC_EEG(data->AdcData.values, i);
+				batch->ekg[i] = ADC_EKG(data->AdcData.values, i);
+        	}
+            break;
+        case SensorType::MAX1030x:
+            batch->spo2[index] = data->SpO2Data;
+            break;
+        default:
+            break;
     }
 }
 
@@ -77,22 +85,23 @@ void UartHandler::flushBatch(const BatchBuffer*batch, uint8_t count, SensorType 
 	pkt.sensorType = (uint8_t) type;
 	pkt.timestamp_ms = firstTimestamp;
 	pkt.numSamples = count;
-	uint16_t payloadSize;
+	uint16_t payloadSize = 0;
 
 	if(type == SensorType::MAX1030x) {
-        memcpy(pkt.spo2Samples, batch->spo2, count * sizeof(MAX3010x_Data));
-        payloadSize = count * sizeof(MAX3010x_Data);
+		//TODO
+	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(float));
+	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(float));
+	    payloadSize = count * sizeof(float) * 3;
 	}
-    else
-    {
-        memcpy(pkt.rawSamples, batch->raw, count * sizeof(uint16_t));
-        payloadSize = count * sizeof(uint16_t);
-    }
-	//TODO: see if crc is needed?
-	// Calculate length of data packet;
-	uint16_t len = offsetof(TxPacket, rawSamples) + payloadSize;
-			//TODO add if using crc:+ sizeof(uint16_t);
-	// Transmit data Packet, semaphore freed in TX complete callback
+	else if(type == SensorType::ADC_COMBINED) {
+	    memcpy(pkt.adcSamples.emg, batch->emg, count * sizeof(uint16_t));
+	    memcpy(pkt.adcSamples.eeg, batch->eeg, count * sizeof(uint16_t));
+	    memcpy(pkt.adcSamples.ekg, batch->ekg, count * sizeof(uint16_t));
+	    payloadSize = count * sizeof(float) * 3;
+	}
+
+	uint16_t len = offsetof(TxPacket, adcSamples) + payloadSize;
 	HAL_UART_Transmit_DMA(mUart, (uint8_t*) &pkt, len);
 }
 
@@ -101,9 +110,6 @@ osStatus_t UartHandler::init(uartConfig config) {
 	mTxDoneSem = osSemaphoreNew(1, 1, NULL);  // starts available
 	mUart = config.uart;
 	mQueue = config.queue;
-	//TODO clean up pt 2:
-	mTaskHandle = xTaskGetCurrentTaskHandle();
-	uartTaskHandle = xTaskGetCurrentTaskHandle();
 	osStatus_t stat = osOK;
 	return stat;
 }
@@ -116,18 +122,21 @@ void UartHandler::run() {
 	uint32_t batchStartTs = 0;
 	uint32_t bits = 0;
 
+	mTaskHandle = xTaskGetCurrentTaskHandle();
+	uartTaskHandle = xTaskGetCurrentTaskHandle();
+
 	while (1) {
-		while(!UI_READY) {
-			osDelay(50);
-		}
+//		while(!UI_READY) {
+//			osDelay(50);
+//		}
 
 		// Wait for notification from Sensor Handler Task
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
-
-		if(bits & UART_HANDLER_NEW_TX_DATA) {
+		//
+		if(bits & UART_HANDLER_NEW_TX_DATA){
+			osStatus_t status = osMessageQueueGet(mQueue, &incoming, nullptr,
+				0);
 			//TODO maybe flush queue? see if it can react fast enough
-			osStatus_t status = osMessageQueueGet(mQueue, &incoming, NULL,
-			TASK_QUEUE_TIMEOUT);
 
 			if (status == osOK) {
 				// new data with different sensor type
@@ -157,6 +166,8 @@ void UartHandler::run() {
 				}
 			}
 
+		} else {
+			osDelay(pdMS_TO_TICKS(10));
 		}
 
 	}

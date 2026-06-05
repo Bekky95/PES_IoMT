@@ -14,7 +14,7 @@ namespace ADC_NotifyBits {
    constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
 }
 
-extern "C" void SensorHandler_NotifyADC();
+extern "C" void SensorHandler_ISRNotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
 
 extern osThreadId_t tSensorHandlerHandle;
 
@@ -69,6 +69,7 @@ osStatus_t adcHandler::init(adcConfig config) {
     }
     return stat;
 }
+
 void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 	/// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
@@ -83,10 +84,16 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
 	if(!mTaskHandle) return;
-	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	AdcSnapshot snapshot;
+	//TODO maybe move setting this as default as it stays the same
+	snapshot.count = ADC_BLOCK_SIZE;
+
+	memcpy(snapshot.values, mAdc.getBuffer(), sizeof(snapshot.values));
+	xQueueSendFromISR((QueueHandle_t)mQueue, &snapshot, &xHigherPriorityTaskWoken);
+
+    SensorHandler_ISRNotifyADC(&xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 osMessageQueueId_t adcHandler::getQueue() {
@@ -110,30 +117,23 @@ void adcHandler::run() {
 	}
 
 	while(1) {
+
+	    // DMA complete: data already pushed to queue by ISR, nothing to do here
+	    // SensorHandler reads from mQueue directly
+
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
-
-		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
-			AdcSnapshot snapshot;
-			snapshot.timestamp_ms = osKernelGetTickCount();
-
-			for(uint8_t i = 0; i < ADC_CH_COUNT; i++) {
-				snapshot.values[i] = mAdc.GetChValVolt(i);
-			}
-			osMessageQueuePut(mQueue, &snapshot, 0, 0);
-			//TODO: check initalization of senorhandler task before calling this? Needed?
-			SensorHandler_NotifyADC();
-		}
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
-			__BKPT();
+			__BKPT(0);
 			// TODO: ensure this works??
 			mAdc.stop();
+			xQueueReset((QueueHandle_t)mQueue);  // discard stale snapshots before restarting
 			mAdc.start();
 		}
 	}
 }
 
 uint16_t* adcHandler::getBuffer(){
-	return mAdc.getValues();
+	return mAdc.getBuffer();
 }

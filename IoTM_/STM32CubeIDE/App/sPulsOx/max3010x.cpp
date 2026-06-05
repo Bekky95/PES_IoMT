@@ -680,7 +680,7 @@ bool MAX3010x::safeCheck(TickType_t  maxTimeToCheck) {
 uint8_t MAX3010x::readRegister8(uint8_t addr) {
 	uint8_t data = 0;
 	if (HAL_I2C_Mem_Read(mI2c, _i2caddr, addr, I2C_MEMADD_SIZE_8BIT, &data, 1,
-			pdMS_TO_TICKS(10)) != HAL_OK) {
+			pdMS_TO_TICKS(20)) != HAL_OK) {
 		return 0;
 	}
 	return data;
@@ -688,7 +688,7 @@ uint8_t MAX3010x::readRegister8(uint8_t addr) {
 
 HAL_StatusTypeDef MAX3010x::writeRegister8(uint8_t addr, uint8_t data) {
 	return HAL_I2C_Mem_Write(mI2c, _i2caddr, addr, I2C_MEMADD_SIZE_8BIT, &data,
-			1, pdMS_TO_TICKS(10));
+			1, pdMS_TO_TICKS(20));
 }
 
 HAL_StatusTypeDef MAX3010x::init(void) {

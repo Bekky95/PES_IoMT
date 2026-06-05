@@ -32,8 +32,8 @@ public:
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 
-	uint16_t* getValues();
-	float getChannelValue(uint8_t ch) const;
+	uint16_t* getBuffer();
+	uint16_t getChannelValue(uint8_t ch) const;
 	float GetChValVolt(uint8_t ch) const;
 
 
@@ -41,8 +41,7 @@ private:
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	uint16_t 			mDmaBuffer[ADC_CH_COUNT]; //TODO maybe increase? to something like ch count * 3
-
+	uint16_t 			mDmaBuffer[ADC_CH_COUNT * ADC_BLOCK_SIZE];
 
 
 };

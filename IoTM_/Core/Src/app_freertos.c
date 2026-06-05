@@ -82,12 +82,12 @@ extern const QueueHandle_t getSensorQueue(void);
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
 const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 1024 * 4 };
 
 /* Definitions for sp02Task */
 osThreadId_t sp02TaskHandle;
 const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		(osPriority_t) osPriorityAboveNormal, .stack_size = 512 * 4 };
 osMessageQueueId_t sp02_to_SensorHandlerHandle;
 const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 		"sp02_SensorHandler_Queue" };
@@ -95,7 +95,7 @@ const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 /* Definitions for adcSensorsTask */
 osThreadId_t adcSensorsTaskHandle;
 const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		.priority = (osPriority_t) osPriorityBelowNormal, .stack_size = 1024 * 4 };
 osMessageQueueId_t adc_to_SensorHandlerHandle;
 const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 		"adc_SensorHandler_Queue" };
@@ -103,7 +103,7 @@ const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 /* Definitions for UART <-> MQTT task */
 osThreadId_t uartTask;
 const osThreadAttr_t uartTask_attributes = { .name = "uartTask", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 128 * 4 };
+		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
 osMessageQueueId_t sensorHandler_to_UartHandle;
 const osMessageQueueAttr_t sensorHandler_to_Uart_attributes = { .name =
 		"sensorHandler_to_Uart" };
@@ -126,7 +126,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t GUI_TaskHandle;
 const osThreadAttr_t GUI_Task_attributes = {
   .name = "GUI_Task",
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
 
@@ -142,8 +142,6 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
 void vApplicationIdleHook(void);
-void configureTimerForRunTimeStats(void);
-unsigned long getRunTimeCounterValue(void);
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook(void) {
@@ -160,17 +158,6 @@ void vApplicationIdleHook(void) {
 	vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
 }
 /* USER CODE END 2 */
-
-/* USER CODE BEGIN 1 */
-/* Functions needed when configGENERATE_RUN_TIME_STATS is on */
-__weak void configureTimerForRunTimeStats(void) {
-
-}
-
-__weak unsigned long getRunTimeCounterValue(void) {
-	return 0;
-}
-/* USER CODE END 1 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -196,7 +183,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	uiQueue = osMessageQueueNew(500, sizeof(SensorData), &uiQueueAttributes);
+	uiQueue = osMessageQueueNew(300, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
@@ -209,7 +196,7 @@ void MX_FREERTOS_Init(void) {
 
 	// Init and add SP02 sensor task
 	if (USE_SP02_SENSOR) {
-		sp02_to_SensorHandlerHandle = osMessageQueueNew(16,
+		sp02_to_SensorHandlerHandle = osMessageQueueNew(4,
 				sizeof(MAX3010x_Data), &sp02_to_SensorHandler_attributes);
 
 		SpO2Config sP02_Config;
@@ -226,7 +213,7 @@ void MX_FREERTOS_Init(void) {
 	// Init and add adc sensor task
 	if (USE_ADC_SENSORS) {
 		/* creation of adc_to_SensorHandler */
-		adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
+		adc_to_SensorHandlerHandle = osMessageQueueNew(40, sizeof(AdcSnapshot),
 				&adc_to_SensorHandler_attributes);
 
 		adcConfig adc_Config;
@@ -244,18 +231,18 @@ void MX_FREERTOS_Init(void) {
 	}
 
 	if (USE_MQTT) {
-		sensorHandler_to_UartHandle = osMessageQueueNew(16, sizeof(SensorData),
+		sensorHandler_to_UartHandle = osMessageQueueNew(40, sizeof(SensorData),
 				&sensorHandler_to_Uart_attributes);
 		uartConfig uart_config;
 		uart_config.queue = sensorHandler_to_UartHandle;
 		uart_config.uart = &huart2;
 		osStatus_t stat = uartInit(uart_config);
 		//TODO: check if needed, scheduler should still start even without mqtt connection:
-		if (stat != osOK) {
+		if (stat != osOK || sensorHandler_to_UartHandle == NULL) {
 			Error_Handler();
 		}
 
-		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance,
+		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance(),
 				&uartTask_attributes);
 
 	}
