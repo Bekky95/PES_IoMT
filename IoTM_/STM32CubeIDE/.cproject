@@ -95,8 +95,6 @@
 									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/NemaGFX/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/TouchGFXNema/include"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.818464068" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -135,8 +133,6 @@
 									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/NemaGFX/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/TouchGFXNema/include"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.option.otherflags.4902865856" name="Other flags" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.option.otherflags" useByScannerDiscovery="true" valueType="stringList">
 									<listOptionValue builtIn="false" value="-femit-class-debug-always"/>
