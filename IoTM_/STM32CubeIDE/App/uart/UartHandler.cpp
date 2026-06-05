@@ -164,9 +164,6 @@ osStatus_t UartHandler::init(uartConfig config) {
 	xSemaphoreGive(mTxDoneSem);
 	mUart = config.uart;
 	mQueue = config.queue;
-	//TODO clean up pt 2:
-	mTaskHandle = xTaskGetCurrentTaskHandle();
-	uartTaskHandle = xTaskGetCurrentTaskHandle();
 	osStatus_t stat = osOK;
 	return stat;
 }
@@ -178,6 +175,9 @@ void UartHandler::run() {
 	SensorType batchType = SENSOR_NONE;
 	uint32_t batchStartTs = 0;
 	uint32_t bits = 0;
+
+	mTaskHandle = xTaskGetCurrentTaskHandle();
+	uartTaskHandle = xTaskGetCurrentTaskHandle();
 
 	while (1) {
 

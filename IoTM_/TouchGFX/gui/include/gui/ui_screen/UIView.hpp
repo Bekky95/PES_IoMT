@@ -12,14 +12,18 @@ public:
     virtual void setupScreen();
     virtual void tearDownScreen();
     virtual void updateGraph(SensorData data);
+    virtual void invalidateGraph();
     float extractSample(const SensorData& data);
-    void bPulsOxClicked() override;
+    void handleADCData(const SensorData& data);
+    void bPulsOx_Hr() override;
+    void bPulsOx_HR_Clicked()override;
     void bEkgClicked()override;
     void bEegClicked() override;
     void bEmgClicked() override;
+
 private:
     void switchSource(SensorType type);
-    SensorType _activeType = EMG;
+
 protected:
 };
 

@@ -37,7 +37,7 @@ HAL_StatusTypeDef AdcDma::start() {
 	if(!mHadc->DMA_Handle) {
 		return HAL_ERROR;
 	}
-	return HAL_ADC_Start_DMA(mHadc, (uint32_t*)mDmaBuffer, (uint32_t)mNumChannels);
+	return HAL_ADC_Start_DMA(mHadc, (uint32_t*)mDmaBuffer, (uint32_t)(ADC_BLOCK_SIZE * mNumChannels));
 
 }
 
@@ -46,11 +46,11 @@ HAL_StatusTypeDef AdcDma::stop() {
 	return stat;
 }
 
-uint16_t* AdcDma::getValues() {
+uint16_t* AdcDma::getBuffer() {
 	return mDmaBuffer;
 }
 
-float AdcDma::getChannelValue(uint8_t ch) const{
+uint16_t AdcDma::getChannelValue(uint8_t ch) const{
 	return mDmaBuffer[ch];
 }
 

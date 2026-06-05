@@ -69,6 +69,7 @@ osStatus_t adcHandler::init(adcConfig config) {
     }
     return stat;
 }
+
 void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 	/// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
@@ -83,7 +84,6 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	// ISR!!! dont call any blocking functions and keep it quick
 	if(hadc != mConfig.adc) return;
 	if(!mTaskHandle) return;
-	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 //	AdcSnapshot snapshot;
 //	//TODO maybe move setting this as default as it stays the same
@@ -152,14 +152,15 @@ void adcHandler::run() {
 
 		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
-			__BKPT();
+			__BKPT(0);
 			// TODO: ensure this works??
 			mAdc.stop();
+			xQueueReset((QueueHandle_t)mQueue);  // discard stale snapshots before restarting
 			mAdc.start();
 		}
 	}
 }
 
 uint16_t* adcHandler::getBuffer(){
-	return mAdc.getValues();
+	return mAdc.getBuffer();
 }
