@@ -91,6 +91,8 @@
 									<listOptionValue builtIn="false" value="../../TouchGFX/generated/texts/include"/>
 									<listOptionValue builtIn="false" value="../../TouchGFX/generated/videos/include"/>
 									<listOptionValue builtIn="false" value="../../TouchGFX/gui/include"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/NemaGFX/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/TouchGFXNema/include"/>
 								</option>
@@ -127,6 +129,8 @@
 									<listOptionValue builtIn="false" value="../../TouchGFX/generated/texts/include"/>
 									<listOptionValue builtIn="false" value="../../TouchGFX/generated/videos/include"/>
 									<listOptionValue builtIn="false" value="../../TouchGFX/gui/include"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\Users\rebek\OneDrive\Dokumente\Studium\PES\Repository\PES_IoMT\IoTM_\STM32CubeIDE\App&quot;"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/NemaGFX/include"/>
 									<listOptionValue builtIn="false" value="../../Middlewares/ST/touchgfx_components/gpu2d/TouchGFXNema/include"/>
 								</option>

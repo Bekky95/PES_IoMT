@@ -95,7 +95,7 @@ const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 /* Definitions for adcSensorsTask */
 osThreadId_t adcSensorsTaskHandle;
 const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
-		.priority = (osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 1024 * 4 };
 osMessageQueueId_t adc_to_SensorHandlerHandle;
 const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 		"adc_SensorHandler_Queue" };
@@ -226,7 +226,7 @@ void MX_FREERTOS_Init(void) {
 	// Init and add adc sensor task
 	if (USE_ADC_SENSORS) {
 		/* creation of adc_to_SensorHandler */
-		adc_to_SensorHandlerHandle = osMessageQueueNew(16, sizeof(AdcSnapshot),
+		adc_to_SensorHandlerHandle = osMessageQueueNew(40, sizeof(SensorData),
 				&adc_to_SensorHandler_attributes);
 
 		adcConfig adc_Config;

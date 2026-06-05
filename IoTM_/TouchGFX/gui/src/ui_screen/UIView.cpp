@@ -20,9 +20,26 @@ void UIView::updateGraph(SensorData data)
 	if(_activeType == data.type) {
 		float val = extractSample(data);
 		gData.addDataPoint(val);
-		gData.invalidate();
+	} else if ( (is_adc_sensor(data.type) && is_adc_sensor(_activeType))){
+		handleADCData(data);
 	}
 
+}
+void UIView::handleADCData(const SensorData& data) {
+    uint16_t val = 0;
+    switch (_activeType) {
+        case EMG: val = data.AdcData.emgAvg; break;
+        case EKG: val = data.AdcData.ekgAvg; break;
+        case EEG: val = data.AdcData.eegAvg; break;
+        default: return;
+    }
+
+    // add an average of the collected data points
+	gData.addDataPoint(val);
+	gData.invalidateContent();
+}
+void UIView::invalidateGraph() {
+	gData.invalidate();
 }
 
 float UIView::extractSample(const SensorData& data){

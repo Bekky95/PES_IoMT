@@ -23,10 +23,25 @@ extern "C" {
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
+#define ADC_BLOCK_SIZE	200
+
+
+// ADC data reader helper
+#define ADC_EMG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 0])
+#define ADC_EKG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 1])
+#define ADC_EEG(buf, i) ((buf)[(i) * ADC_CH_COUNT + 2])
 
 typedef enum {
 	MAX1030x, EMG, EEG, EKG, SENSOR_NONE
 } SensorType;
+
+// helper function to show that MAX1030x holds both sensor types
+static inline int is_max_sensor(SensorType t) {
+	return t == MAX1030x || t == MAX_Sp02 || t == MAX_HR;
+}
+static inline int is_adc_sensor(SensorType t) {
+	return t == EMG || t == EKG || t == EEG || t == ADC_COMBINED;
+}
 
 typedef struct {
 	int32_t spo2;
@@ -35,6 +50,18 @@ typedef struct {
 	int8_t validHeartRate;
 } MAX3010x_Data;
 
+typedef struct {
+	uint16_t emg;
+	uint16_t ekg;
+	uint16_t eeg;
+} AdcSensorData;
+
+typedef struct {
+	uint16_t emgAvg;
+	uint16_t eegAvg;
+	uint16_t ekgAvg;
+
+} AdcSnapshot;
 //TODO if needed change this to hold data type + pointer to data to save space
 typedef struct {
 	SensorType type;

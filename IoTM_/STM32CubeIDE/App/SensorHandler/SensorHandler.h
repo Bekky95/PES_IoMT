@@ -38,6 +38,7 @@ public:
 	const QueueHandle_t getUIQueue(void) const;
 	const SemaphoreHandle_t getUiSemaphore(void) const;
 	void publishToAll(SensorData data);
+	uint16_t averageAdcData(AdcSnapshot data);
 
 private:
 	//Constructors and Destructor:

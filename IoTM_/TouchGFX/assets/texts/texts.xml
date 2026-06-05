@@ -19,10 +19,10 @@
         <Translation Language="GB">EKG</Translation>
       </Text>
       <Text Id="__SingleUse_8EED" Alignment="Center" TypographyId="Default">
-        <Translation Language="GB">EEG</Translation>
+        <Translation Language="GB">EMG</Translation>
       </Text>
       <Text Id="__SingleUse_ZZA1" Alignment="Center" TypographyId="Default">
-        <Translation Language="GB">EMG</Translation>
+        <Translation Language="GB">EEG</Translation>
       </Text>
     </TextGroup>
   </Texts>

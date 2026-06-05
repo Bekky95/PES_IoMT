@@ -28,7 +28,7 @@ public:
     {
         memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
     }
-    //TODO the mHadc seems to be getting a copy and not the actual register pointer FIX!!
+
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 

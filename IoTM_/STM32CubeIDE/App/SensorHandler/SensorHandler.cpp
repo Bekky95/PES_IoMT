@@ -22,11 +22,10 @@ extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 	SensorHandler::start(config, attr);
 }
 
-extern "C" void SensorHandler_NotifyADC() {
-	if (tSensorHandlerHandle != nullptr) {
-		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),
-				SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
-	}
+extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken) {
+    if (tSensorHandlerHandle != nullptr) {
+    	xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
+    }
 }
 
 extern "C" void SensorHandler_NotifyMAX() {
@@ -86,6 +85,10 @@ void SensorHandler::taskEntry(void *pv) {
 	static_cast<SensorHandler*>(pv)->taskLoop();
 }
 
+uint16_t SensorHandler::averageAdcData(AdcSnapshot data) {
+
+}
+
 void SensorHandler::taskLoop() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
@@ -104,30 +107,16 @@ void SensorHandler::taskLoop() {
 
 		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 
-			AdcSnapshot adcData;
+			SensorData adcData;
 
 			// drain queue as there should be more than one value
 			while (osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
 				// ADC interrupt fired handle by passing data to sources
-
-				for (uint8_t i = 0; i < ADC_CH_COUNT; i++) {
-					SensorData data = { };
-					data.type = ADC_CHANNEL_TYPE[i];
-					data.timestamp_ms = adcData.timestamp_ms;
-
-					switch (i) {
-					case ADC_CH_EMG:
-						data.EmgData = adcData.values[i];
-						break;
-					case ADC_CH_EEG:
-						data.EegData = adcData.values[i];
-						break;
-					case ADC_CH_EKG:
-						data.EkgData = adcData.values[i];
-						break;
-					}
-					publishToAll(data);
-				}
+//				SensorData data = { };
+//				data.type = SensorType::ADC_COMBINED;
+//				data.timestamp_ms = osKernelGetTickCount();
+//				data.AdcData = adcData;
+				publishToAll(adcData);
 
 			}
 			// check if MAX3010x has new data for 1ms warning blocking function!

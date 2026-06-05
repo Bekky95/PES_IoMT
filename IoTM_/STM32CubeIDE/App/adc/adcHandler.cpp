@@ -14,7 +14,7 @@ namespace ADC_NotifyBits {
    constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
 }
 
-extern "C" void SensorHandler_NotifyADC();
+extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
 
 extern osThreadId_t tSensorHandlerHandle;
 
@@ -85,8 +85,20 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	if(!mTaskHandle) return;
 	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//	AdcSnapshot snapshot;
+//	//TODO maybe move setting this as default as it stays the same
+//	snapshot.count = ADC_BLOCK_SIZE;
+//
+//	memcpy(snapshot.values, mAdc.getBuffer(), sizeof(snapshot.values));
+//	xQueueSendFromISR((QueueHandle_t)mQueue, &snapshot, &xHigherPriorityTaskWoken);
+//
+//    SensorHandler_ISRNotifyADC(&xHigherPriorityTaskWoken);
+//    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+	// New strat: notify adc task here and then average the samples before passing to sensor handle
 	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 osMessageQueueId_t adcHandler::getQueue() {
@@ -110,20 +122,34 @@ void adcHandler::run() {
 	}
 
 	while(1) {
+
+
+
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
-		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, pdMS_TO_TICKS(100));
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
+		if(bits & ADC_NotifyBits::ADC_DMA_COMPLETE) {
+            uint32_t emgSum = 0;
+            uint32_t eegSum = 0;
+            uint32_t ekgSum = 0;
+            const uint16_t* buf = mAdc.getBuffer();
 
-		if (bits & ADC_NotifyBits::ADC_DMA_COMPLETE){
-			AdcSnapshot snapshot;
-			snapshot.timestamp_ms = osKernelGetTickCount();
+            for (uint16_t i = 0; i < ADC_BLOCK_SIZE; i++) {
+                emgSum += ADC_EMG(buf, i);
+                eegSum += ADC_EEG(buf, i);
+                ekgSum += ADC_EKG(buf, i);
+            }
 
-			for(uint8_t i = 0; i < ADC_CH_COUNT; i++) {
-				snapshot.values[i] = mAdc.GetChValVolt(i);
-			}
-			osMessageQueuePut(mQueue, &snapshot, 0, 0);
-			//TODO: check initalization of senorhandler task before calling this? Needed?
-			SensorHandler_NotifyADC();
+            SensorData data;
+            data.type = SensorType::ADC_COMBINED;
+            data.AdcData.emgAvg = (uint16_t)(emgSum / ADC_BLOCK_SIZE);
+            data.AdcData.eegAvg = (uint16_t)(eegSum / ADC_BLOCK_SIZE);
+            data.AdcData.ekgAvg = (uint16_t)(ekgSum / ADC_BLOCK_SIZE);
+            data.timestamp_ms = HAL_GetTick();
+
+            osMessageQueuePut(mQueue, &data, 0, 0);
+            SensorHandler_NotifyADC(nullptr);
+
 		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
 			__BKPT();
