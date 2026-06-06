@@ -120,9 +120,7 @@ void UartHandler::flushBatch(BatchBuffer *batch, uint8_t count, SensorType type,
 			*p++ = (uint8_t) (batch->singleAdc[i] >> 8);
 			break;
 
-		case MAX1030x:
-		case MAX_Sp02:
-		case MAX_HR: {
+		case MAX1030x:{
 			int32_t spo2 = batch->maxData[i].spo2;
 			int32_t hr = batch->maxData[i].heartRate;
 			*p++ = (uint8_t) (spo2 >> 0);
@@ -137,6 +135,8 @@ void UartHandler::flushBatch(BatchBuffer *batch, uint8_t count, SensorType type,
 			*p++ = (uint8_t) batch->maxData[i].validHeartRate;
 			break;
 		}
+		case MAX_Sp02:
+		case MAX_HR:
 		default:
 			break;
 		}

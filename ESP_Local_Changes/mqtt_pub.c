@@ -23,10 +23,11 @@
 #define EMG_TOPIC "iomt/sensors/emg"
 #define EEG_TOPIC "iomt/sensors/eeg"
 #define EKG_TOPIC "iomt/sensors/ekg"
+#define MAX_TOPIC "iomt/sensors/max"
 
-#define SINGLE_JSON_BUF 40
+#define SINGLE_JSON_BUF 128
 
-static int publish_single(esp_mqtt_client_handle_t client,
+static int publish_single_adc(esp_mqtt_client_handle_t client,
                            const char   *topic,
                            uint32_t      ts,
                            uint16_t      value)
@@ -35,6 +36,29 @@ static int publish_single(esp_mqtt_client_handle_t client,
     int  len = snprintf(buf, sizeof(buf),
                         "{\"ts\":%" PRIu32 ",\"v\":%u}",
                         ts, value);
+    if (len < 0 || len >= (int)sizeof(buf)) return -1;
+    return esp_mqtt_client_publish(client, topic, buf, len, 1, 0);
+}
+
+static int publish_single_max(esp_mqtt_client_handle_t client,
+                           const char   *topic,
+                           uint32_t      ts,
+                           const MAX3010x_Data* data)
+{
+    char buf[SINGLE_JSON_BUF];
+    int  len = snprintf(buf, sizeof(buf),
+                        "{"
+                        "\"ts\":"             "%" PRIu32 ","
+                        "\"heartRate\":"      "%" PRId32 ","
+                        "\"validHeartRate\":" "%d,"
+                        "\"spo2\":"           "%" PRId32 ","
+                        "\"validSPO2\":"      "%d"
+                        "}",
+                        ts,
+                        data->heartRate,
+                        data->validHeartRate,
+                        data->spo2,
+                        data->validSPO2);
     if (len < 0 || len >= (int)sizeof(buf)) return -1;
     return esp_mqtt_client_publish(client, topic, buf, len, 1, 0);
 }
@@ -190,7 +214,7 @@ void mqtt_pub(void *pvParameters)
 
 
 				// type == ADC_COMBINED
-				if(type == 1 ){
+				if(type == ADC_COMBINED ){
 					uint16_t emg_data, ekg_data, eeg_data;
 					uint8_t* p = payload;
 
@@ -200,11 +224,28 @@ void mqtt_pub(void *pvParameters)
 						eeg_data = p[2] | (p[3] << 8);
 						ekg_data = p[4] | (p[5] << 8);
 
-						publish_single(mqtt_client, EMG_TOPIC, timestamp, emg_data);
-						//publish_single(mqtt_client, "sensors/eeg", timestamp, eeg_data);
-						//publish_single(mqtt_client, "sensors/ekg", timestamp, ekg_data);
+						publish_single_adc(mqtt_client, EMG_TOPIC, timestamp, emg_data);
+						publish_single_adc(mqtt_client, EEG_TOPIC, timestamp, eeg_data);
+						publish_single_adc(mqtt_client, EKG_TOPIC, timestamp, ekg_data);
 
 						p+=6;
+					}
+				} else if(type == MAX1030x) {
+					uint8_t validHr, validSP02;
+					uint32_t sp02, heartRate;
+					uint8_t* p = payload;
+
+
+					for(uint8_t i = 0; i < count; i++){
+						sp02 = p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+						validSP02 = p[4];
+						heartRate = p[5] | (p[6] << 8) | (p[7] << 16) | (p[8] << 24);
+						validHr = p[9];
+						
+						const MAX3010x_Data data= {.spo2 = sp02, .validSPO2 = validSP02, .heartRate= heartRate, .validHeartRate=validHr};
+						publish_single_max(mqtt_client, MAX_TOPIC, timestamp, &data);
+
+						p+=10;
 					}
 				}
 

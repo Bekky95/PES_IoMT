@@ -57,6 +57,8 @@ static size_t getPayloadLength(uint8_t type, uint8_t count)
             return count * 2;
 
         case MAX1030x:
+			return count * 10;
+			break;
         case MAX_Sp02:
         case MAX_HR:
             return count * 10;
@@ -135,7 +137,7 @@ void uart_rx(void* pvParameters)
 		size_t payloadLen = getPayloadLength(packet.header.type, packet.header.count);
 
 		if(payloadLen == 0) {
-			ESP_LOGW(pcTaskGetName(NULL), "Invalid Payload Length");
+			ESP_LOGW(pcTaskGetName(NULL), "Invalid Payload Length: %u", payloadLen);
 			continue;
 		}
 
