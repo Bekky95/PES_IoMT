@@ -14,7 +14,7 @@ namespace ADC_NotifyBits {
    constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
 }
 
-extern "C" void SensorHandler_ISRNotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
+extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
 
 extern osThreadId_t tSensorHandlerHandle;
 
@@ -85,14 +85,10 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	if(hadc != mConfig.adc) return;
 	if(!mTaskHandle) return;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	AdcSnapshot snapshot;
-	//TODO maybe move setting this as default as it stays the same
-	snapshot.count = ADC_BLOCK_SIZE;
 
-	memcpy(snapshot.values, mAdc.getBuffer(), sizeof(snapshot.values));
-	xQueueSendFromISR((QueueHandle_t)mQueue, &snapshot, &xHigherPriorityTaskWoken);
+	// notify adc task here and then average the samples before passing to sensor handle
+	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
 
-    SensorHandler_ISRNotifyADC(&xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
@@ -118,12 +114,34 @@ void adcHandler::run() {
 
 	while(1) {
 
-	    // DMA complete: data already pushed to queue by ISR, nothing to do here
-	    // SensorHandler reads from mQueue directly
+
 
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
+		if(bits & ADC_NotifyBits::ADC_DMA_COMPLETE) {
+            uint32_t emgSum = 0;
+            uint32_t eegSum = 0;
+            uint32_t ekgSum = 0;
+            const uint16_t* buf = mAdc.getBuffer();
+
+            for (uint16_t i = 0; i < ADC_BLOCK_SIZE; i++) {
+                emgSum += ADC_EMG(buf, i);
+                eegSum += ADC_EEG(buf, i);
+                ekgSum += ADC_EKG(buf, i);
+            }
+
+            SensorData data;
+            data.type = SensorType::ADC_COMBINED;
+            data.AdcData.emgAvg = (uint16_t)(emgSum / ADC_BLOCK_SIZE);
+            data.AdcData.eegAvg = (uint16_t)(eegSum / ADC_BLOCK_SIZE);
+            data.AdcData.ekgAvg = (uint16_t)(ekgSum / ADC_BLOCK_SIZE);
+            data.timestamp_ms = HAL_GetTick();
+
+            osMessageQueuePut(mQueue, &data, 0, 0);
+            SensorHandler_NotifyADC(nullptr);
+
+		}
 		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
 			__BKPT(0);
 			// TODO: ensure this works??

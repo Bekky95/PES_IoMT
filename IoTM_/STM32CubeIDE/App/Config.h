@@ -12,18 +12,18 @@ extern "C" {
 #endif
 
 // Debug defines, determine which senor is currently used
-#define USE_EEG_SENSOR	true
-#define USE_EMG_SENSOR  true
-#define USE_EKG_SENSOR  true		//PIN: PB-1
+#define USE_EEG_SENSOR	false		//PIN  PB-1
+#define USE_EMG_SENSOR  false		//PIN: PC-0
+#define USE_EKG_SENSOR  false		//PIN: PC-1
 #define USE_ADC_SENSORS	(USE_EEG_SENSOR | USE_EMG_SENSOR |USE_EKG_SENSOR)
-#define USE_SP02_SENSOR false
+#define USE_SP02_SENSOR true
 
 #define USE_UI 			true
 #define USE_MQTT   		true
 
 //
 #define ADC_CH_COUNT (USE_EEG_SENSOR + USE_EMG_SENSOR + USE_EKG_SENSOR)
-#define ADC_BLOCK_SIZE	10
+#define ADC_BLOCK_SIZE	200
 
 
 // ADC data reader helper
@@ -40,7 +40,7 @@ static inline int is_max_sensor(SensorType t) {
 	return t == MAX1030x || t == MAX_Sp02 || t == MAX_HR;
 }
 static inline int is_adc_sensor(SensorType t) {
-	return t == EMG || t == EKG || t == EKG || t == ADC_COMBINED;
+	return t == EMG || t == EKG || t == EEG || t == ADC_COMBINED;
 }
 
 typedef struct {
@@ -57,8 +57,10 @@ typedef struct {
 } AdcSensorData;
 
 typedef struct {
-	uint16_t values[ADC_CH_COUNT * ADC_BLOCK_SIZE];
-	uint8_t  count;
+	uint16_t emgAvg;
+	uint16_t eegAvg;
+	uint16_t ekgAvg;
+
 } AdcSnapshot;
 //TODO if needed change this to hold data type + pointer to data to save space
 typedef struct {

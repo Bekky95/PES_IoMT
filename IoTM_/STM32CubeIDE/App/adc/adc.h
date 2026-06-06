@@ -26,9 +26,9 @@ public:
     // Constructor — no hardware access, no assertions
     AdcDma() : mHadc(nullptr), mNumChannels(0)
     {
-        memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
+        //memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
     }
-    //TODO the mHadc seems to be getting a copy and not the actual register pointer FIX!!
+
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 

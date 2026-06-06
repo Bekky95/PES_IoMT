@@ -28,19 +28,17 @@ void UIView::updateGraph(SensorData data)
 
 }
 void UIView::handleADCData(const SensorData& data) {
-    uint8_t chOffset = 0;
+    uint16_t val = 0;
     switch (_activeType) {
-        case EMG: chOffset = 0; break;
-        case EKG: chOffset = 1; break;
-        case EEG: chOffset = 2; break;
+        case EMG: val = data.AdcData.emgAvg; break;
+        case EKG: val = data.AdcData.ekgAvg; break;
+        case EEG: val = data.AdcData.eegAvg; break;
         default: return;
     }
 
-    for (uint32_t i = 0; i < data.AdcData.count; i++) {
-        int16_t sample = (int16_t)data.AdcData.values[i * ADC_CH_COUNT + chOffset];
-        gData.addDataPoint(sample);
-		gData.invalidateContent();
-    }
+    // add an average of the collected data points
+	gData.addDataPoint(val);
+	gData.invalidateContent();
 }
 void UIView::invalidateGraph() {
 	gData.invalidate();
@@ -59,13 +57,8 @@ void UIView::switchSource(SensorType type) {
 	gData.clear();
 
 }
-void UIView::bPulsOx_Hr() {
-	gData.setGraphRangeY(-10, 200);
-	switchSource(MAX_HR);
-}
 void UIView::bPulsOx_HR_Clicked(){
-	gData.setGraphRangeY(-10, 110);
-	switchSource(MAX_Sp02);
+	switchSource(MAX1030x);
 }
 
 void UIView::bEkgClicked(){

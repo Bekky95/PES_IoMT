@@ -11,31 +11,27 @@
 #include "cmsis_os2.h"
 #include <cstring>
 
-#define TX_BATCH_SIZE 10
+// Frame format (for ESP32 UART → MQTT parser)
+// [0xAA][0x55][type:1][count:1][ts_ms:4 LE][payload][crc8:1]
+//
+
 #define TASK_QUEUE_TIMEOUT 10  // ms to wait on queue
 
-//TODO: maybe shrink this to only hold one adc sensor value if size it too latge
-typedef struct __attribute__((packed)) {
-    uint8_t   startByte;
-    uint8_t   sensorType;
-    uint32_t  timestamp_ms;   // first sample's timestamp
-    uint8_t   numSamples;
-    union {
-        struct {
-            uint16_t emg[TX_BATCH_SIZE];
-            uint16_t eeg[TX_BATCH_SIZE];
-            uint16_t ekg[TX_BATCH_SIZE];
-        } adcSamples;
-        MAX3010x_Data spo2Samples[TX_BATCH_SIZE];
-    };
-} TxPacket;
+#define TX_BATCH_SIZE        1
+#define UART_SYNC1           0xAAU
+#define UART_SYNC2           0x55U
+#define MAX_BYTES_PER_SAMPLE 10U                         /* MAX3010x largest */
+#define MAX_FRAME_SIZE       (8U + TX_BATCH_SIZE * MAX_BYTES_PER_SAMPLE)
+
+static uint8_t          sTxBuf[MAX_FRAME_SIZE];
+static SemaphoreHandle_t sTxDoneSem;
 
 typedef struct {
-	uint16_t         emg[TX_BATCH_SIZE];
-	uint16_t         eeg[TX_BATCH_SIZE];
-	uint16_t         ekg[TX_BATCH_SIZE];
-    MAX3010x_Data spo2[TX_BATCH_SIZE];
-    uint8_t       count;
+    union {
+        MAX3010x_Data maxData[TX_BATCH_SIZE];
+        AdcSnapshot   adcData[TX_BATCH_SIZE];  /* ADC_COMBINED: all 3 ch    */
+        uint16_t      singleAdc[TX_BATCH_SIZE];/* EMG/EEG/EKG: one channel  */
+    };
 } BatchBuffer;
 
 class UartHandler {
@@ -46,13 +42,13 @@ public:
 	osStatus_t init(uartConfig config);
 
 	void onTxComplete(UART_HandleTypeDef *huart);
-	void flushBatch(const BatchBuffer* batch, uint8_t count, SensorType type,
-			uint32_t firstTimestamp);
+	void flushBatch(BatchBuffer *batch, uint8_t count,
+            SensorType type, uint32_t startTs);
 	void run();
 private:
 	UART_HandleTypeDef *mUart;
 	osMessageQueueId_t mQueue;
-	osSemaphoreId_t mTxDoneSem;
+	SemaphoreHandle_t  mTxDoneSem;
 	TaskHandle_t mTaskHandle = nullptr;
 };
 

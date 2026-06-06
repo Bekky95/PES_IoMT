@@ -213,7 +213,7 @@ void MX_FREERTOS_Init(void) {
 	// Init and add adc sensor task
 	if (USE_ADC_SENSORS) {
 		/* creation of adc_to_SensorHandler */
-		adc_to_SensorHandlerHandle = osMessageQueueNew(40, sizeof(AdcSnapshot),
+		adc_to_SensorHandlerHandle = osMessageQueueNew(40, sizeof(SensorData),
 				&adc_to_SensorHandler_attributes);
 
 		adcConfig adc_Config;

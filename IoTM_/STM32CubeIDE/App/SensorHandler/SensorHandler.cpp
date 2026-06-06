@@ -23,14 +23,9 @@ extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 	SensorHandler::start(config, attr);
 }
 
-extern "C" void SensorHandler_ISRNotifyADC(BaseType_t* pxHigherPriorityTaskWoken) {
+extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken) {
     if (tSensorHandlerHandle != nullptr) {
-        xTaskNotifyFromISR(
-            static_cast<TaskHandle_t>(tSensorHandlerHandle),
-            SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA,
-            eSetBits,
-            pxHigherPriorityTaskWoken
-        );
+    	xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
     }
 }
 
@@ -91,6 +86,10 @@ void SensorHandler::taskEntry(void *pv) {
 	static_cast<SensorHandler*>(pv)->taskLoop();
 }
 
+uint16_t SensorHandler::averageAdcData(AdcSnapshot data) {
+
+}
+
 void SensorHandler::taskLoop() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
@@ -108,16 +107,16 @@ void SensorHandler::taskLoop() {
 
 		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 
-			AdcSnapshot adcData;
+			SensorData adcData;
 
 			// drain queue as there should be more than one value
 			while (osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
 				// ADC interrupt fired handle by passing data to sources
-				SensorData data = { };
-				data.type = SensorType::ADC_COMBINED;
-				data.timestamp_ms = osKernelGetTickCount();
-				data.AdcData = adcData;
-				publishToAll(data);
+//				SensorData data = { };
+//				data.type = SensorType::ADC_COMBINED;
+//				data.timestamp_ms = osKernelGetTickCount();
+//				data.AdcData = adcData;
+				publishToAll(adcData);
 
 			}
 		}
