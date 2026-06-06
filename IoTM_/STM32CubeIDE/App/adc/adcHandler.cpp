@@ -85,17 +85,8 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	if(hadc != mConfig.adc) return;
 	if(!mTaskHandle) return;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-//	AdcSnapshot snapshot;
-//	//TODO maybe move setting this as default as it stays the same
-//	snapshot.count = ADC_BLOCK_SIZE;
-//
-//	memcpy(snapshot.values, mAdc.getBuffer(), sizeof(snapshot.values));
-//	xQueueSendFromISR((QueueHandle_t)mQueue, &snapshot, &xHigherPriorityTaskWoken);
-//
-//    SensorHandler_ISRNotifyADC(&xHigherPriorityTaskWoken);
-//    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
-	// New strat: notify adc task here and then average the samples before passing to sensor handle
+	// notify adc task here and then average the samples before passing to sensor handle
 	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

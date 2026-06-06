@@ -6,11 +6,32 @@
   <Texts>
     <TextGroup Id="Group1" />
     <TextGroup Id="Unsorted">
-      <Text Id="__SingleUse_TXPC" Alignment="Center" TypographyId="Small">
-        <Translation Language="GB">PulsOx SP02</Translation>
+      <Text Id="bpm" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">000</Translation>
       </Text>
-      <Text Id="__SingleUse_NV95" Alignment="Center" TypographyId="Small">
-        <Translation Language="GB">PulsOx HR</Translation>
+      <Text Id="puslOx" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">000</Translation>
+      </Text>
+      <Text Id="__SingleUse_BWUG" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">PulsOx</Translation>
+      </Text>
+      <Text Id="__SingleUse_3C5E" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">PulsOx</Translation>
+      </Text>
+      <Text Id="__SingleUse_358M" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">Heart Rate Estimate: &lt;value&gt; bpm&#10;</Translation>
+      </Text>
+      <Text Id="__SingleUse_WEZE" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">PulsOx: &lt;value&gt; %</Translation>
+      </Text>
+      <Text Id="__SingleUse_YHKA" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EMG</Translation>
+      </Text>
+      <Text Id="__SingleUse_Z21O" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EEG</Translation>
+      </Text>
+      <Text Id="__SingleUse_WWVY" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">EKG</Translation>
       </Text>
       <Text Id="__SingleUse_H50F" Alignment="Left" TypographyId="Default">
         <Translation Language="GB">&lt;value&gt;</Translation>
@@ -27,7 +48,7 @@
     </TextGroup>
   </Texts>
   <Typographies>
-    <Typography Id="Default" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
+    <Typography Id="Default" Font="verdana.ttf" Size="20" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" WildcardCharacterRanges="a-z,A-Z,0-9" />
     <Typography Id="Large" Font="verdana.ttf" Size="40" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
     <Typography Id="Small" Font="verdana.ttf" Size="15" Bpp="4" IsVector="no" Direction="LTR" FallbackCharacter="?" />
   </Typographies>

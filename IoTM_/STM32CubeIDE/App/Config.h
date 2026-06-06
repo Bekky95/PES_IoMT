@@ -12,11 +12,11 @@ extern "C" {
 #endif
 
 // Debug defines, determine which senor is currently used
-#define USE_EEG_SENSOR	true
-#define USE_EMG_SENSOR  true
-#define USE_EKG_SENSOR  true		//PIN: PB-1
+#define USE_EEG_SENSOR	false		//PIN  PB-1
+#define USE_EMG_SENSOR  false		//PIN: PC-0
+#define USE_EKG_SENSOR  false		//PIN: PC-1
 #define USE_ADC_SENSORS	(USE_EEG_SENSOR | USE_EMG_SENSOR |USE_EKG_SENSOR)
-#define USE_SP02_SENSOR false
+#define USE_SP02_SENSOR true
 
 #define USE_UI 			true
 #define USE_MQTT   		true

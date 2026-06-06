@@ -26,7 +26,7 @@ public:
     // Constructor — no hardware access, no assertions
     AdcDma() : mHadc(nullptr), mNumChannels(0)
     {
-        memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
+        //memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
     }
 
 	HAL_StatusTypeDef start();

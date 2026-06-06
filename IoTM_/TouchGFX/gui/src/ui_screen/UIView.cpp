@@ -57,13 +57,8 @@ void UIView::switchSource(SensorType type) {
 	gData.clear();
 
 }
-void UIView::bPulsOx_Hr() {
-	gData.setGraphRangeY(-10, 200);
-	switchSource(MAX_HR);
-}
 void UIView::bPulsOx_HR_Clicked(){
-	gData.setGraphRangeY(-10, 110);
-	switchSource(MAX_Sp02);
+	switchSource(MAX1030x);
 }
 
 void UIView::bEkgClicked(){
