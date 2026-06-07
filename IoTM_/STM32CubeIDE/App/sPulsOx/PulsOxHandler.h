@@ -12,6 +12,7 @@
 #include "max3010x.h"
 #include "spo2_algorithm.h"
 #include "SensorHandler/SensorHandler.h"
+#include "heartRate.h"
 
 
 class PulsOxHandler {
@@ -31,6 +32,8 @@ private:
 	MAX3010x mMAX3010x;
 	uint32_t irBuffer[BUFFER_LEN]; //infrared LED sensor data
 	uint32_t redBuffer[BUFFER_LEN];  //red LED sensor data
+	uint8_t  hr_average[8];
+	TickType_t lastBeat = 0;
 };
 
 #endif /* APP_SPULSOX_PULSOXHANDLER_H_ */

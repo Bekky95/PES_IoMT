@@ -65,12 +65,14 @@ void PulsOxHandler::run() {
 	mTaskHandle = xTaskGetCurrentTaskHandle();
 	uint32_t bits = 0;
 	//Setup Sensor
-	uint8_t ledBrightness = 60; //Options: 0=Off to 255=50mA
+	uint8_t ledBrightness = 110; //Options: 0=Off to 255=50mA
 	uint8_t sampleAverage = 4; //Options: 1, 2, 4, 8, 16, 32
 	uint8_t ledMode = 2; //Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
-	uint8_t sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+	int sampleRate = 100; //Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
 	int pulseWidth = 411; //Options: 69, 118, 215, 411
-	int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
+	int adcRange = 16384; //Options: 2048, 4096, 8192, 16384
+
+
 
 	mMAX3010x.setup(ledBrightness, sampleAverage, ledMode, sampleRate,
 			pulseWidth, adcRange);
@@ -82,9 +84,9 @@ void PulsOxHandler::run() {
 	for (uint8_t i = 0; i < BUFFER_LEN; i++) {
 
 		// Block in small yields until new data is ready
-		while (!mMAX3010x.available()) {
+		while (mMAX3010x.available() == 0) {
 			mMAX3010x.check();
-			osDelay(pdMS_TO_TICKS(10));
+			//osDelay(pdMS_TO_TICKS(1));
 		}
 
 		redBuffer[i] = mMAX3010x.getRed();
@@ -117,9 +119,9 @@ void PulsOxHandler::run() {
 
 		// Collect 25 fresh samples into the top of the buffer
 		for (uint8_t i = 75; i < 100; i++) {
-			while (!mMAX3010x.available()) {
+			while (mMAX3010x.available() == 0) {
 				mMAX3010x.check();
-				osDelay(pdMS_TO_TICKS(10));
+				//osDelay(pdMS_TO_TICKS(1));
 			}
 
 			redBuffer[i] = mMAX3010x.getRed();

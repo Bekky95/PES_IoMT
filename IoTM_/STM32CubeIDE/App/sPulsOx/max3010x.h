@@ -24,7 +24,7 @@ public:
 	MAX3010x() : mI2c(nullptr) {}
 	HAL_StatusTypeDef init(void);
 	void setup(uint8_t powerLevel = 0x1F, uint8_t sampleAverage = 4,
-			uint8_t ledMode = 7, uint16_t sampleRate = 400,
+			uint8_t ledMode = 7, int sampleRate = 400,
 			uint16_t pulseWidth = 411, uint16_t adcRange = 4096);
 
 	uint32_t getRed(void); //Returns immediate red value
