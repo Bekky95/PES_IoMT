@@ -11,6 +11,7 @@
 #include "FreeRTOS.h"
 #include "max3010x.h"
 #include "spo2_algorithm.h"
+#include "SensorHandler/SensorHandler.h"
 
 
 class PulsOxHandler {

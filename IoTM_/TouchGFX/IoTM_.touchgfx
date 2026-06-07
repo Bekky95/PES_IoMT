@@ -352,6 +352,7 @@
         "Interactions": [
           {
             "InteractionName": "EMG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEMG"
@@ -364,6 +365,7 @@
           },
           {
             "InteractionName": "EEG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEEG"
@@ -376,6 +378,7 @@
           },
           {
             "InteractionName": "EKG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEKG"
@@ -384,6 +387,40 @@
               "Type": "ActionGotoScreen",
               "ScreenTransitionType": "ScreenTransitionNone",
               "ActionComponent": "UI"
+            }
+          },
+          {
+            "InteractionName": "Interaction1",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEMG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEMG_Clicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction2",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEEG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEEG_Clicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction3",
+            "HasCompletedTrigger": true,
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEKG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEKG_Clicked"
             }
           }
         ]

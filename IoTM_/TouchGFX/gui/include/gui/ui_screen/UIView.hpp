@@ -3,6 +3,8 @@
 
 #include <gui_generated/ui_screen/UIViewBase.hpp>
 #include <gui/ui_screen/UIPresenter.hpp>
+#include "SensorHandler/SensorHandler.h"
+
 
 class UIView : public UIViewBase
 {

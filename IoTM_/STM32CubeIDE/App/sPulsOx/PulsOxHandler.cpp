@@ -7,7 +7,7 @@
 
 #include <sPulsOx/PulsOxHandler.h>
 extern uint8_t UI_READY;
-
+extern SensorType _activeType;
 // TODO maybe protect this in a giver function
 extern osThreadId_t tSensorHandlerHandle;
 static PulsOxHandler pulsOxHandlerInstance;
@@ -76,6 +76,7 @@ void PulsOxHandler::run() {
 			pulseWidth, adcRange);
 
 	MAX3010x_Data data = { };
+	while(_activeType != SensorType::MAX1030x) {osDelay(pdMS_TO_TICKS(10));}
 
 	// Collect initial 100 samples
 	for (uint8_t i = 0; i < BUFFER_LEN; i++) {
@@ -94,11 +95,19 @@ void PulsOxHandler::run() {
 	maxim_heart_rate_and_oxygen_saturation(irBuffer, BUFFER_LEN, redBuffer,
 			(int32_t*) &data.spo2, (int8_t*) &data.validSPO2,
 			(int32_t*) &data.heartRate, (int8_t*) &data.validHeartRate);
-
 	// main loop
 	while (USE_SP02_SENSOR) {
 		while(!UI_READY) {
 			osDelay(1000);
+		}
+
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, 0);
+		if((bits & MAX3010x_STOP_FLAG) || (_activeType != SensorType::MAX1030x)) {
+			mMAX3010x.shutDown();
+			SensorHandler::instance().onStopped();
+			vTaskSuspend(NULL);
+			mMAX3010x.wakeUp();
+			continue;
 		}
 		// Shift last 75 samples down, discarding oldest 25
 		for (uint8_t i = 25; i < 100; i++) {

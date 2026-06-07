@@ -8,11 +8,12 @@
 #include <adc/adcHandler.h>
 extern uint8_t UI_READY;
 
-// Notify Bitmask to identify which interrupt was triggered. Bzw which flag is set.
-namespace ADC_NotifyBits {
-   constexpr uint32_t ADC_DMA_COMPLETE = (1 << 0);
-   constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
-}
+//// Notify Bitmask to identify which interrupt was triggered. Bzw which flag is set.
+//namespace ADC_NotifyBits {
+//   constexpr uint32_t ADC_DMA_COMPLETE = (1 << 0);
+//   constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
+//   constexpr uint32_t ADC_STOP_FLAG = (1 << 2);
+//}
 
 extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
 
@@ -76,7 +77,7 @@ void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
 	if(!mTaskHandle) return;
 	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_ERROR_CALLBACK, eSetBits, &xHigherPriorityTaskWoken);
+	xTaskNotifyFromISR(mTaskHandle, ADC_ERROR_CALLBACK, eSetBits, &xHigherPriorityTaskWoken);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
@@ -87,7 +88,7 @@ void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	// notify adc task here and then average the samples before passing to sensor handle
-	xTaskNotifyFromISR(mTaskHandle, ADC_NotifyBits::ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
+	xTaskNotifyFromISR(mTaskHandle, ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -114,12 +115,17 @@ void adcHandler::run() {
 
 	while(1) {
 
-
-
 		// 0: dont clear bits on entry
 		// 0xFFFFFFFF: clear bits on exit
 		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
-		if(bits & ADC_NotifyBits::ADC_DMA_COMPLETE) {
+		if(bits & ADC_STOP_FLAG){
+			mAdc.stop();
+			SensorHandler::instance().onStopped();
+			vTaskSuspend(NULL);
+			mAdc.start(); //Task resumes here once called again
+			continue;
+		}
+		if(bits & ADC_DMA_COMPLETE) {
             uint32_t emgSum = 0;
             uint32_t eegSum = 0;
             uint32_t ekgSum = 0;
@@ -142,7 +148,7 @@ void adcHandler::run() {
             SensorHandler_NotifyADC(nullptr);
 
 		}
-		if(bits & ADC_NotifyBits::ADC_ERROR_CALLBACK) {
+		if(bits & ADC_ERROR_CALLBACK) {
 			__BKPT(0);
 			// TODO: ensure this works??
 			mAdc.stop();

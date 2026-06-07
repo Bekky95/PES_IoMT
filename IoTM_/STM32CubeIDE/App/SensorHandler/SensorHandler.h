@@ -38,7 +38,10 @@ public:
 	const QueueHandle_t getUIQueue(void) const;
 	const SemaphoreHandle_t getUiSemaphore(void) const;
 	void publishToAll(SensorData data);
-	uint16_t averageAdcData(AdcSnapshot data);
+	// Functions for stoping/switching tasks
+	void switchTo(SensorType type);
+	void onStopped();
+
 
 private:
 	//Constructors and Destructor:
@@ -76,6 +79,8 @@ private:
 	QueueHandle_t  mUartQueue = nullptr;
 	TaskHandle_t		mTaskHandle;
 	SemaphoreHandle_t	mUiSem = nullptr;
+	//Must be initalized to the sensor type of _activeType ADC_COMBINED by default
+	SensorType			sPending = SensorType::ADC_COMBINED;
 	bool				mRunning = false;
 };
 

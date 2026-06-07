@@ -12,9 +12,9 @@ extern "C" {
 #endif
 
 // Debug defines, determine which senor is currently used
-#define USE_EEG_SENSOR	false		//PIN  PB-1
-#define USE_EMG_SENSOR  false		//PIN: PC-0
-#define USE_EKG_SENSOR  false		//PIN: PC-1
+#define USE_EEG_SENSOR	true		//PIN  PB-1
+#define USE_EMG_SENSOR  true		//PIN: PC-0
+#define USE_EKG_SENSOR  true		//PIN: PC-1
 #define USE_ADC_SENSORS	(USE_EEG_SENSOR | USE_EMG_SENSOR |USE_EKG_SENSOR)
 #define USE_SP02_SENSOR true
 
@@ -108,11 +108,14 @@ typedef enum {
 // Sensor_Handler_Notifybits
 #define SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA  (1UL << 0)
 #define SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA  (1UL << 1)
-/* TODO
- * #define SENSOR_HANDLER_NOTIFYBITS_NEW_MQTT_PACKET  (1UL << 2)
- * #define SENSOR_HANDLER_NOTIFYBITS_ADC_ERROR        (1UL << 3)
- * usw...
- */
+
+// ADC Task notify bits
+#define ADC_DMA_COMPLETE (1UL << 0)
+#define ADC_ERROR_CALLBACK (1UL << 1)
+#define ADC_STOP_FLAG (1UL << 2)
+
+// MAX3010x notify bits
+#define MAX3010x_STOP_FLAG (1UL << 0)
 
 // UART task notify bits
 #define UART_HANDLER_NEW_TX_DATA (1UL << 0)

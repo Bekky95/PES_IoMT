@@ -59,17 +59,22 @@ void UIView::switchSource(SensorType type) {
 }
 void UIView::bPulsOx_HR_Clicked(){
 	switchSource(MAX1030x);
+	SensorHandler::instance().switchTo(MAX1030x);
 }
 
 void UIView::bEkgClicked(){
 	//gData.setGraphRangeY(-0.5f, 3.5f);
 	switchSource(EKG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
+
 }
 void UIView::bEegClicked(){
 	//gData.setGraphRangeY(-0.5f, 3.5f);
 	switchSource(EEG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
 }
 void UIView::bEmgClicked(){
 	//gData.setGraphRangeY(-0.5f, 3.5f);
 	switchSource(EMG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
 }

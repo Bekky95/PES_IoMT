@@ -11,6 +11,7 @@
 #include "Config.h"
 #include "adc.h"
 #include "core_cm33.h"
+#include "SensorHandler/SensorHandler.h"
 
 
 class adcHandler {
