@@ -11,15 +11,15 @@
 #define MAX_BATCH_SIZE  8
 #define MAX_PAYLOAD_SIZE  80  
 
+typedef struct {
+	int32_t spo2;
+	int8_t validSPO2;
+	int32_t heartRate;
+	int8_t validHeartRate;
+} MAX3010x_Data;
+
 typedef enum {
-    SENSOR_NONE = 0,
-    ADC_COMBINED = 1,
-    EMG = 2,
-    EEG = 3,
-    EKG = 4,
-    MAX1030x = 5,
-    MAX_Sp02 = 6,
-    MAX_HR = 7
+	MAX1030x, ADC_COMBINED, EMG, EEG, EKG, MAX_Sp02, MAX_HR, SENSOR_NONE
 } SensorType;
 
 typedef struct __attribute__((packed))
