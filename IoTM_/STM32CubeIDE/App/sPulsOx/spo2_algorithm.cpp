@@ -119,13 +119,20 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer, int32_t n_i
   for ( k=0 ; k<BUFFER_SIZE ;k++){
     n_th1 +=  an_x[k];
   }
-  n_th1=  n_th1/ ( BUFFER_SIZE);
-  if( n_th1<50) n_th1=50; // min allowed
-  if( n_th1>60) n_th1=60; // max allowed
+//  n_th1=  n_th1/ ( BUFFER_SIZE);
+//  if( n_th1<50) n_th1=50; // min allowed
+//  if( n_th1>60) n_th1=60; // max allowed
+  // Replace with this:
+  int32_t n_max_val = 0;
+  for(k = 0; k < BUFFER_SIZE; k++){
+      if(an_x[k] > n_max_val) n_max_val = an_x[k];
+  }
+  n_th1 = n_max_val / 2;       // 50% of peak amplitude
+  if(n_th1 < 30) n_th1 = 30;  // floor for very weak signals only
 
   for ( k=0 ; k<15;k++) an_ir_valley_locs[k]=0;
   // since we flipped signal, we use peak detector as valley detector
-  maxim_find_peaks( an_ir_valley_locs, &n_npks, an_x, BUFFER_SIZE, n_th1, 8, 15 );//peak_height, peak_distance, max_num_peaks
+  maxim_find_peaks( an_ir_valley_locs, &n_npks, an_x, BUFFER_SIZE, n_th1, 15, 13 );//peak_height, peak_distance, max_num_peaks
   n_peak_interval_sum =0;
   if (n_npks>=2){
     for (k=1; k<n_npks; k++) n_peak_interval_sum += (an_ir_valley_locs[k] -an_ir_valley_locs[k -1] ) ;
@@ -234,6 +241,7 @@ void maxim_peaks_above_min_height( int32_t *pn_locs, int32_t *n_npks,  int32_t  
   *n_npks = 0;
   
   while (i < n_size-1){
+	  int curr_val = pn_x[i];
     if (pn_x[i] > n_min_height && pn_x[i] > pn_x[i-1]){      // find left edge of potential peaks
       n_width = 1;
       while (i+n_width < n_size && pn_x[i] == pn_x[i+n_width])  // find flat peaks

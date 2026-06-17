@@ -87,7 +87,7 @@ const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
 /* Definitions for sp02Task */
 osThreadId_t sp02TaskHandle;
 const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
-		(osPriority_t) osPriorityAboveNormal, .stack_size = 512 * 4 };
+		(osPriority_t) osPriorityAboveNormal, .stack_size = 1024 * 4 };
 osMessageQueueId_t sp02_to_SensorHandlerHandle;
 const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
 		"sp02_SensorHandler_Queue" };
@@ -142,6 +142,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
 void vApplicationIdleHook(void);
+void vApplicationStackOverflowHook(xTaskHandle xTask, char *pcTaskName);
 
 /* USER CODE BEGIN 2 */
 void vApplicationIdleHook(void) {
@@ -158,6 +159,17 @@ void vApplicationIdleHook(void) {
 	vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
 }
 /* USER CODE END 2 */
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+    // Set a breakpoint here, or toggle a GPIO, or log
+    __BKPT(0);
+}
+/* USER CODE END 4 */
 
 /**
   * @brief  FreeRTOS initialization
