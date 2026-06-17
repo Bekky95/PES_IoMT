@@ -48,6 +48,8 @@ typedef struct {
 	int8_t validSPO2;
 	int32_t heartRate;
 	int8_t validHeartRate;
+    uint32_t irSamples[25];
+    uint32_t redSamples[25];
 } MAX3010x_Data;
 
 typedef struct {

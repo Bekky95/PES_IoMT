@@ -195,7 +195,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
-	uiQueue = osMessageQueueNew(300, sizeof(SensorData), &uiQueueAttributes);
+	uiQueue = osMessageQueueNew(150, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */

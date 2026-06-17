@@ -74,11 +74,25 @@ void PulsOxHandler::run() {
 	int pulseWidth = 411; //Options: 69, 118, 215, 411
 	int adcRange = 4096; //Options: 2048, 4096, 8192, 16384
 
+	// Seperate heart rate stuff
+	static const uint8_t RATE_SIZE = 4;
+	static uint8_t rates[RATE_SIZE];
+	static uint8_t rateSpot = 0;
+
+	static uint32_t lastBeat = 0;
+
+	static float beatsPerMinute = 0;
+	static int beatAvg = 0;
+	static uint8_t numsamp = 0;
+
+	rateSpot = 0;
+	lastBeat = HAL_GetTick();
+	memset(rates, 0, sizeof(rates));
+
 	mMAX3010x.setup(ledBrightness, sampleAverage, ledMode, sampleRate,
 			pulseWidth, adcRange);
 
 	MAX3010x_Data data = { };
-
 
 	while (_activeType != SensorType::MAX1030x) {
 		osDelay(pdMS_TO_TICKS(10));
@@ -88,9 +102,11 @@ void PulsOxHandler::run() {
 	for (uint8_t i = 0; i < BUFFER_SIZE; i++) {
 
 		// Block in small yields until new data is ready
-		while (mMAX3010x.available() == 0) {
+		numsamp = mMAX3010x.available();
+		while (numsamp == 0) {
 			mMAX3010x.check();
-
+			numsamp = mMAX3010x.available();
+			osDelay(pdMS_TO_TICKS(35));
 		}
 
 		uint32_t red = mMAX3010x.getRed();
@@ -98,7 +114,26 @@ void PulsOxHandler::run() {
 
 		redBuffer[i] = red;
 		irBuffer[i] = ir;
+		if (checkForBeat(ir)) {
+			uint32_t now = HAL_GetTick();
+			uint32_t delta = now - lastBeat;
+			lastBeat = now;
 
+			if (delta > 0) {
+				beatsPerMinute = 60.0f / (delta / 1000.0f);
+
+				if (beatsPerMinute < 255 && beatsPerMinute > 20) {
+					rates[rateSpot++] = (uint8_t) beatsPerMinute;
+					rateSpot %= RATE_SIZE;
+
+					int sum = 0;
+					for (uint8_t i = 0; i < RATE_SIZE; i++) {
+						sum += rates[i];
+					}
+					beatAvg = sum / RATE_SIZE;
+				}
+			}
+		}
 		mMAX3010x.nextSample();
 	}
 
@@ -131,12 +166,34 @@ void PulsOxHandler::run() {
 		for (uint16_t i = (BUFFER_SIZE - NEW_SAMPLES); i < BUFFER_SIZE; i++) {
 			while (mMAX3010x.available() == 0) {
 				mMAX3010x.check();
+				osDelay(pdMS_TO_TICKS(35));
 			}
 			uint32_t red = mMAX3010x.getRed();
 			uint32_t ir = mMAX3010x.getIR();
 
 			redBuffer[i] = red;
 			irBuffer[i] = ir;
+
+			if (checkForBeat(ir)) {
+				uint32_t now = HAL_GetTick();
+				uint32_t delta = now - lastBeat;
+				lastBeat = now;
+
+				if (delta > 0) {
+					beatsPerMinute = 60.0f / (delta / 1000.0f);
+
+					if (beatsPerMinute < 255 && beatsPerMinute > 20) {
+						rates[rateSpot++] = (uint8_t) beatsPerMinute;
+						rateSpot %= RATE_SIZE;
+
+						int sum = 0;
+						for (uint8_t i = 0; i < RATE_SIZE; i++) {
+							sum += rates[i];
+						}
+						beatAvg = sum / RATE_SIZE;
+					}
+				}
+			}
 
 			mMAX3010x.nextSample();
 		}
@@ -146,6 +203,11 @@ void PulsOxHandler::run() {
 				(int32_t*) &data.spo2, (int8_t*) &data.validSPO2,
 				(int32_t*) &data.heartRate, (int8_t*) &data.validHeartRate);
 
+		// Copy the newest NEW_SAMPLES raw values into data before queuing
+		memcpy(data.irSamples, &irBuffer[BUFFER_SIZE - NEW_SAMPLES],
+				NEW_SAMPLES * sizeof(uint32_t));
+		memcpy(data.redSamples, &redBuffer[BUFFER_SIZE - NEW_SAMPLES],
+				NEW_SAMPLES * sizeof(uint32_t));
 
 		osMessageQueuePut(mQueue, &data, 0, 0);
 		SensorHandler_NotifyMAX();
@@ -153,157 +215,4 @@ void PulsOxHandler::run() {
 
 	// Should never get h6re
 	vTaskSuspend(nullptr);
-}
-
-bool PulsOxHandler::processHRSample(uint32_t irSample,
-                                    float& bpmOut)
-{
-    auto& s = mHRState;
-
-    constexpr float fs = 100.0f;
-
-    // DC tracker
-    constexpr float dcAlpha = 0.01f;
-
-    // LP smoothing
-    constexpr float lpAlpha = 0.15f;
-
-    // Envelope decay
-    constexpr float envDecay = 0.98f;
-
-    // Ignore first 3 seconds
-    constexpr uint32_t warmupSamples =
-        static_cast<uint32_t>(3.0f * fs);
-
-    // Max HR ≈ 180 bpm
-    constexpr uint32_t refractorySamples =
-        static_cast<uint32_t>(0.33f * fs);
-
-    float x = static_cast<float>(irSample);
-
-    //---------------------------------------
-    // DC removal
-    //---------------------------------------
-
-    if (s.sampleIndex == 0)
-    {
-        s.dc = x;
-    }
-
-    s.dc += dcAlpha * (x - s.dc);
-
-    float hp = x - s.dc;
-
-    //---------------------------------------
-    // Low-pass
-    //---------------------------------------
-
-    s.lp_prev += lpAlpha * (hp - s.lp_prev);
-
-    float filtered = s.lp_prev;
-
-
-    //---------------------------------------
-    // Wait for filters to settle
-    //---------------------------------------
-
-    if (s.sampleIndex < warmupSamples)
-    {
-        s.prev2 = s.prev1;
-        s.prev1 = filtered;
-        s.sampleIndex++;
-        return false;
-    }
-    if(s.sampleIndex == warmupSamples)
-    {
-        s.envelope = 0;
-    }
-
-    //---------------------------------------
-    // Adaptive threshold
-    //---------------------------------------
-
-    float threshold =
-        s.envelope * 0.50f;
-
-    //---------------------------------------
-    // Peak detection
-    //---------------------------------------
-
-    bool localPeak =
-        (s.prev1 >= s.prev2) &&
-        (s.prev1 > filtered);
-
-    bool aboveThreshold =
-        s.prev1 > threshold;
-
-    bool refractoryPassed =
-        (s.sampleIndex - s.lastPeakSample)
-        > refractorySamples;
-
-    //---------------------------------------
-    // Envelope tracking
-    //---------------------------------------
-
-    s.envelope *= envDecay;
-
-    float absSignal = fabsf(filtered);
-
-    if (absSignal > s.envelope)
-    {
-        s.envelope += 0.1f * (filtered - s.envelope);
-    }
-
-
-    bool newBeat = false;
-
-    if (localPeak &&
-        aboveThreshold &&
-        refractoryPassed)
-    {
-        uint32_t peakSample =
-            s.sampleIndex - 1;
-
-        if (s.lastPeakSample != 0)
-        {
-            uint32_t ibiSamples =
-                peakSample - s.lastPeakSample;
-
-            float bpm =
-                60.0f * fs /
-                static_cast<float>(ibiSamples);
-
-            if (bpm >= 40.0f &&
-                bpm <= 180.0f)
-            {
-                if (!s.initialized)
-                {
-                    s.bpmFiltered = bpm;
-                    s.initialized = true;
-                }
-                else
-                {
-                    s.bpmFiltered =
-                        0.85f * s.bpmFiltered +
-                        0.15f * bpm;
-                }
-
-                bpmOut = s.bpmFiltered;
-                newBeat = true;
-            }
-        }
-
-        s.lastPeakSample = peakSample;
-    }
-
-    //---------------------------------------
-    // Shift history
-    //---------------------------------------
-
-    s.prev2 = s.prev1;
-    s.prev1 = filtered;
-
-    s.sampleIndex++;
-
-    return newBeat;
 }
