@@ -24,6 +24,7 @@
 #define EEG_TOPIC "iomt/sensors/eeg"
 #define EKG_TOPIC "iomt/sensors/ekg"
 #define MAX_TOPIC "iomt/sensors/max"
+#define ADC_TOPIC "iomt/sensors/adc"
 
 #define SINGLE_JSON_BUF 128
 
@@ -60,6 +61,30 @@ static int publish_single_max(esp_mqtt_client_handle_t client,
                         data->spo2,
                         data->validSPO2);
     if (len < 0 || len >= (int)sizeof(buf)) return -1;
+    return esp_mqtt_client_publish(client, topic, buf, len, 1, 0);
+}
+static int publish_adc_data(esp_mqtt_client_handle_t client,
+                            const char *topic,
+                            uint32_t ts,
+                            uint16_t emg,
+                            uint16_t eeg,
+                            uint16_t ekg)
+{
+    char buf[256];
+	//gemeinsames JSON
+	//{
+  	//	"ts": 123456,
+  	//	"emg": 512,
+  	//	"eeg": 487,
+  	//	"ekg": 623
+	//}
+    int len = snprintf(buf, sizeof(buf),
+                       "{\"ts\":%" PRIu32 ",\"emg\":%u,\"eeg\":%u,\"ekg\":%u}",
+                       ts, emg, eeg, ekg);
+
+    if (len < 0 || len >= (int)sizeof(buf))
+        return -1;
+	// !!! wird nur über eine topic gesendet !!! -> muss auf Dashboard Seite wieder auseinander sortiert werden
     return esp_mqtt_client_publish(client, topic, buf, len, 1, 0);
 }
 
@@ -216,6 +241,7 @@ void mqtt_pub(void *pvParameters)
 				// type == ADC_COMBINED
 				if(type == ADC_COMBINED ){
 					uint16_t emg_data, ekg_data, eeg_data;
+					float emg_data_avg = 0, ekg_data_avg = 0, eeg_data_avg = 0;
 					uint8_t* p = payload;
 
 					// extract payload
@@ -223,13 +249,23 @@ void mqtt_pub(void *pvParameters)
 						emg_data = p[0] | (p[1] << 8);
 						eeg_data = p[2] | (p[3] << 8);
 						ekg_data = p[4] | (p[5] << 8);
+						emg_data_avg += emg_data;
+						ekg_data_avg += ekg_data;
+						eeg_data_avg += eeg_data;
 
-						publish_single_adc(mqtt_client, EMG_TOPIC, timestamp, emg_data);
-						publish_single_adc(mqtt_client, EEG_TOPIC, timestamp, eeg_data);
-						publish_single_adc(mqtt_client, EKG_TOPIC, timestamp, ekg_data);
+						//publish_single_adc(mqtt_client, EMG_TOPIC, timestamp, emg_data);
+						//publish_single_adc(mqtt_client, EEG_TOPIC, timestamp, eeg_data);
+						//publish_single_adc(mqtt_client, EKG_TOPIC, timestamp, ekg_data);
+					}
+					emg_data_avg /= count;
+					ekg_data_avg /= count;
+					eeg_data_avg /= count;
+					if (publish_adc_data(mqtt_client, ADC_TOPIC, timestamp, emg_data_avg, eeg_data_avg, ekg_data_avg) == -1) {
+						ESP_LOGE(TAG, "ADC PUBLISH FAILED");
+					}
+
 
 						p+=6;
-					}
 				} else if(type == MAX1030x) {
 					uint8_t validHr, validSP02;
 					uint32_t sp02, heartRate;

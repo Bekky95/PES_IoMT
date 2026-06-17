@@ -17,14 +17,11 @@
 
 #define TASK_QUEUE_TIMEOUT 10  // ms to wait on queue
 
-#define TX_BATCH_SIZE        1
+#define TX_BATCH_SIZE        10
 #define UART_SYNC1           0xAAU
 #define UART_SYNC2           0x55U
 #define MAX_BYTES_PER_SAMPLE 10U                         /* MAX3010x largest */
 #define MAX_FRAME_SIZE       (8U + TX_BATCH_SIZE * MAX_BYTES_PER_SAMPLE)
-
-static uint8_t          sTxBuf[MAX_FRAME_SIZE];
-static SemaphoreHandle_t sTxDoneSem;
 
 typedef struct {
     union {
