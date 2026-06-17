@@ -1,5 +1,7 @@
 #include <gui/ui_screen/UIView.hpp>
 
+volatile SensorType _activeType = EMG;
+
 UIView::UIView()
 {
 
@@ -15,10 +17,64 @@ void UIView::tearDownScreen()
     UIViewBase::tearDownScreen();
 }
 
-void UIView::updateGraph(float val)
+void UIView::updateGraph(SensorData data)
 {
-	gData.addDataPoint(val);
-	gData.invalidate();
+	if((is_max_sensor(data.type) && is_max_sensor(_activeType))) {
+		float val = extractSample(data);
+		gData.addDataPoint(val);
+	} else if ( (is_adc_sensor(data.type) && is_adc_sensor(_activeType))){
+		handleADCData(data);
+	}
 
 }
+void UIView::handleADCData(const SensorData& data) {
+    uint16_t val = 0;
+    switch (_activeType) {
+        case EMG: val = data.AdcData.emgAvg; break;
+        case EKG: val = data.AdcData.ekgAvg; break;
+        case EEG: val = data.AdcData.eegAvg; break;
+        default: return;
+    }
 
+    // add an average of the collected data points
+	gData.addDataPoint(val);
+	gData.invalidateContent();
+}
+void UIView::invalidateGraph() {
+	gData.invalidate();
+}
+
+float UIView::extractSample(const SensorData& data){
+    switch (_activeType)
+    {
+        case MAX_HR:   return (float)data.SpO2Data.heartRate;
+        case MAX_Sp02: return (float)data.SpO2Data.spo2;
+        default:       return 0.0f;
+    }
+}
+void UIView::switchSource(SensorType type) {
+	_activeType = type;
+	gData.clear();
+
+}
+void UIView::bPulsOx_HR_Clicked(){
+	switchSource(MAX1030x);
+	SensorHandler::instance().switchTo(MAX1030x);
+}
+
+void UIView::bEkgClicked(){
+	//gData.setGraphRangeY(-0.5f, 3.5f);
+	switchSource(EKG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
+
+}
+void UIView::bEegClicked(){
+	//gData.setGraphRangeY(-0.5f, 3.5f);
+	switchSource(EEG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
+}
+void UIView::bEmgClicked(){
+	//gData.setGraphRangeY(-0.5f, 3.5f);
+	switchSource(EMG);
+	SensorHandler::instance().switchTo(ADC_COMBINED);
+}

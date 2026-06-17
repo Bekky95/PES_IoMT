@@ -1,0 +1,163 @@
+/*
+ * adcHandler.cpp
+ *
+ *  Created on: 27 Apr 2026
+ *      Author: Lucian
+ */
+
+#include <adc/adcHandler.h>
+extern uint8_t UI_READY;
+
+//// Notify Bitmask to identify which interrupt was triggered. Bzw which flag is set.
+//namespace ADC_NotifyBits {
+//   constexpr uint32_t ADC_DMA_COMPLETE = (1 << 0);
+//   constexpr uint32_t ADC_ERROR_CALLBACK = (1 << 1);
+//   constexpr uint32_t ADC_STOP_FLAG = (1 << 2);
+//}
+
+extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken);
+
+extern osThreadId_t tSensorHandlerHandle;
+
+static adcHandler adcHandlerInstance;
+extern "C" void* adcHandlerGetInstance() {
+	return static_cast<void*>(&adcHandlerInstance);
+}
+
+extern "C" void ADCHandler_TaskEntry(void* arg) {
+	static_cast<adcHandler*>(arg)->run();
+}
+
+extern "C" osStatus_t adcInit(adcConfig cfg) {
+	return adcHandlerInstance.init(cfg);
+}
+// ADC conversion complete interrupt callback
+extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	adcHandlerInstance.adcConcCpltCallback(hadc);
+}
+
+// ADC error callback TODO
+extern "C" void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
+	adcHandlerInstance.adcErrorCallback(hadc);
+}
+
+
+adcHandler::adcHandler() {
+	// TODO Auto-generated constructor stub
+
+}
+
+adcHandler::~adcHandler() {
+	// TODO Auto-generated destructor stub
+	//delete mAdc;
+}
+
+osStatus_t adcHandler::init(adcConfig config) {
+	//DEBUG: volatile uint32_t adcInstance = (uint32_t)config.adc->Instance;
+	osStatus_t stat = osOK;
+	mConfig = config;
+	//TODO clean up
+    if (config.adc) {
+        mAdc = AdcDma(config.adc, config.adcChannelCount);
+    }  else {
+    	stat = osError;
+    }
+    if(config.queue) {
+    	mQueue = config.queue;
+    } else {
+    	stat = osError;
+    }
+    return stat;
+}
+
+void adcHandler::adcErrorCallback(ADC_HandleTypeDef* hadc) {
+	/// ISR!!! dont call any blocking functions and keep it quick
+	if(hadc != mConfig.adc) return;
+	if(!mTaskHandle) return;
+	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	xTaskNotifyFromISR(mTaskHandle, ADC_ERROR_CALLBACK, eSetBits, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void adcHandler::adcConcCpltCallback(ADC_HandleTypeDef* hadc) {
+	// ISR!!! dont call any blocking functions and keep it quick
+	if(hadc != mConfig.adc) return;
+	if(!mTaskHandle) return;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	// notify adc task here and then average the samples before passing to sensor handle
+	xTaskNotifyFromISR(mTaskHandle, ADC_DMA_COMPLETE, eSetBits, &xHigherPriorityTaskWoken);
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+osMessageQueueId_t adcHandler::getQueue() {
+	return mQueue;
+}
+
+
+void adcHandler::run() {
+	//T
+	mTaskHandle = xTaskGetCurrentTaskHandle();
+	uint32_t bits = 0;
+	while(!UI_READY){
+		osDelay(50);
+	}
+
+	// if any of the adc senors are configed set up adc
+	if(USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
+		// init the adc
+		HAL_StatusTypeDef stat = mAdc.start();
+		configASSERT(stat == HAL_OK);
+	}
+
+	while(1) {
+
+		// 0: dont clear bits on entry
+		// 0xFFFFFFFF: clear bits on exit
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
+		if(bits & ADC_STOP_FLAG){
+			mAdc.stop();
+			SensorHandler::instance().onStopped();
+			vTaskSuspend(NULL);
+			mAdc.start(); //Task resumes here once called again
+			continue;
+		}
+		if(bits & ADC_DMA_COMPLETE) {
+            uint32_t emgSum = 0;
+            uint32_t eegSum = 0;
+            uint32_t ekgSum = 0;
+            const uint16_t* buf = mAdc.getBuffer();
+
+            for (uint16_t i = 0; i < ADC_BLOCK_SIZE; i++) {
+                emgSum += ADC_EMG(buf, i);
+                eegSum += ADC_EEG(buf, i);
+                ekgSum += ADC_EKG(buf, i);
+            }
+
+            SensorData data;
+            data.type = SensorType::ADC_COMBINED;
+            data.AdcData.emgAvg = (uint16_t)(emgSum / ADC_BLOCK_SIZE);
+            data.AdcData.eegAvg = (uint16_t)(eegSum / ADC_BLOCK_SIZE);
+            data.AdcData.ekgAvg = (uint16_t)(ekgSum / ADC_BLOCK_SIZE);
+            data.timestamp_ms = HAL_GetTick();
+
+            osMessageQueuePut(mQueue, &data, 0, 0);
+            SensorHandler_NotifyADC(nullptr);
+
+		}
+		if(bits & ADC_ERROR_CALLBACK) {
+			__BKPT(0);
+			// TODO: ensure this works??
+			mAdc.stop();
+			xQueueReset((QueueHandle_t)mQueue);  // discard stale snapshots before restarting
+			mAdc.start();
+		}
+	}
+}
+
+uint16_t* adcHandler::getBuffer(){
+	return mAdc.getBuffer();
+}

@@ -6,30 +6,41 @@
  */
 
 #include <SensorHandler/SensorHandler.h>
-#include <cstring>
-#include <numeric>
-#include <cstdio>
+extern uint8_t UI_READY;
+extern SensorType _activeType;
+// include the two data task handles to be able to pause/resume them
+extern osThreadId_t sp02TaskHandle;
+extern osThreadId_t adcSensorsTaskHandle;
 
-SensorHandler* SensorHandler::sInstance = nullptr;
+// Maps ADC buffer index → SensorType
+static const SensorType ADC_CHANNEL_TYPE[3] = { SensorType::EMG,
+		SensorType::EEG, SensorType::EKG, };
+
+SensorHandler *SensorHandler::sInstance = nullptr;
 static osThreadId_t tSensorHandlerHandle;
 
-extern "C" void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-		//TODO: Check hadc and sinstance
-		SensorHandler::instance().notifyAdc(hadc);
+extern "C" void notify_UartTask();
+
+extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
+		const osThreadAttr_t *attr) {
+	SensorHandler::start(config, attr);
 }
 
-extern "C" void SensorHandler_Start(SensorHandlerConfig* config, const osThreadAttr_t* attr)
-{
-    SensorHandler::start(config, attr);
+extern "C" void SensorHandler_NotifyADC(BaseType_t *pxHigherPriorityTaskWoken) {
+	if (tSensorHandlerHandle != nullptr) {
+		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),
+				SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
+	}
 }
 
-extern "C" void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc) {
-	SensorHandler::instance().notifyAdc(hadc);
+extern "C" void SensorHandler_NotifyMAX() {
+	if (tSensorHandlerHandle != nullptr) {
+		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),
+				SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA, eSetBits);
+	}
 }
-
 SensorHandler::~SensorHandler() {
-    this->stop();
+	this->stop();
 }
 
 void SensorHandler::stop() {
@@ -41,12 +52,14 @@ SensorHandler& SensorHandler::instance() {
 	return *sInstance;
 }
 // Public API
-void SensorHandler::start(SensorHandlerConfig* config, const osThreadAttr_t* attr) {
+void SensorHandler::start(SensorHandlerConfig *config,
+		const osThreadAttr_t *attr) {
 
-	  if(sInstance != nullptr) {
-		  return;
-	  }
+	if (sInstance != nullptr) {
+		return;
+	}
 
+<<<<<<< HEAD
 	  sInstance = new SensorHandler();
 	  sInstance->init(config);
 	  //TODO: Clean this up
@@ -67,18 +80,27 @@ void SensorHandler::init(const SensorHandlerConfig* config) {
     mflags = osEventFlagsNew(nullptr);
     mUIQueue = mConfig.uiQueue;
     mUiSem = mConfig.uiSem;
+=======
+	sInstance = new SensorHandler();
+	sInstance->init(config);
+	//TODO: Clean this up
+	tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry, sInstance,
+			attr);
+>>>>>>> b9f35f446a174841bda2b6b829967391a2bd082e
 }
 
-void SensorHandler::notifyAdc(ADC_HandleTypeDef* hadc)
-{
-	if(hadc != mConfig.hadc) return;
-	//must be set to false, vTaskNotifyGiveFromISR() will set to true if it unblocks tasks
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR(mTaskHandle, &xHigherPriorityTaskWoken);
-	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+void SensorHandler::init(const SensorHandlerConfig *config) {
+	mConfig = *config;
+	mRunning = true;
+
+	mUIQueue = mConfig.uiQueue;
+	mAdcQueue = mConfig.adcQueue;
+	mMax3010xQueue = mConfig.max3010xQueue;
+	mUartQueue = (QueueHandle_t) mConfig.uartQueue;
+	mUiSem = mConfig.uiSem;
 }
 
-const QueueHandle_t SensorHandler::getUIQueue(void) const{
+const QueueHandle_t SensorHandler::getUIQueue(void) const {
 	return mUIQueue;
 }
 
@@ -86,37 +108,118 @@ const SemaphoreHandle_t SensorHandler::getUiSemaphore(void) const {
 	return mUiSem;
 }
 
-void SensorHandler::taskEntry(void* pv) {
+void SensorHandler::taskEntry(void *pv) {
 	static_cast<SensorHandler*>(pv)->taskLoop();
 }
 
 void SensorHandler::taskLoop() {
 
 	mTaskHandle = xTaskGetCurrentTaskHandle();
-	configASSERT(mAdc != nullptr);
+	// Notification bits
+	uint32_t bits = 0;
 
-	auto stat = mAdc->start();
+	while (mRunning) {
+		while (!UI_READY) {
+			osDelay(50);
+		}
+		//osStatus_t status = osOK;
 
-	configASSERT(stat == HAL_OK);
+		// Wait for notification from other tasks
+		xTaskNotifyWait(0, 0xFFFFFFFF, &bits, osWaitForever);
 
-	//TODO: fix here, read data from sensors and send to display/mqtt
-    while (mRunning) {
-    	printf("test");
-    	SensorData data = {};
+		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA) {
 
-    	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+			SensorData adcData;
 
+			// drain queue as there should be more than one value
+			while (osMessageQueueGet(mAdcQueue, &adcData, nullptr, 0) == osOK) {
+				// ADC interrupt fired handle by passing data to sources
+//				SensorData data = { };
+//				data.type = SensorType::ADC_COMBINED;
+//				data.timestamp_ms = osKernelGetTickCount();
+//				data.AdcData = adcData;
+				publishToAll(adcData);
 
-    	data.adc[0] = mAdcChannel1->getVoltValue();
+			}
+		}
+		// check if MAX3010x has new data for 1ms warning blocking function!
+		if (bits & SENSOR_HANDLER_NOTIFYBITS_NEW_MAX_DATA) {
+			MAX3010x_Data MAX3010xData;
 
-    	// Get semahpore and write data to the UI Queue
-    	if(xSemaphoreTake(mUiSem, pdMS_TO_TICKS(1)) == pdTRUE) {
-    		xQueueSend(mUIQueue,&data,0);
-    		xSemaphoreGive(mUiSem);
-    	}
+			// Drain Data
+			while (osMessageQueueGet(mMax3010xQueue, &MAX3010xData, nullptr, 0)
+					== osOK) {
+				SensorData data = { };
+				data.type = SensorType::MAX1030x;
+				data.timestamp_ms = osKernelGetTickCount();
+				data.SpO2Data = MAX3010xData;
 
+				publishToAll(data);
+			}
+		}
 
-    }
-    // terminate task if mRunning is set to false
-    vTaskDelete(NULL);
+	}
+
+	// terminate task if mRunning is set to false
+	__BKPT();
+	vTaskDelete(NULL);
 }
+void SensorHandler::publishToAll(SensorData data) {
+	//TODO rate limit the sending to UI, find a better fix
+	//uint32_t lastUISend = 0;
+	//const uint32_t UI_UPDATE_MS = 33; // ~30fps
+	//uint32_t now = osKernelGetTickCount();
+	//if (now - lastUISend >= UI_UPDATE_MS) {
+	osStatus_t stat = osOK;
+	//uint32_t cnt = osMessageQueueGetCount(mUIQueue);
+	if (USE_UI && mUIQueue != nullptr
+			&& ((is_adc_sensor(data.type) && is_adc_sensor(_activeType))
+					|| (is_max_sensor(data.type) && is_max_sensor(_activeType)))) {
+		// No need to notify the UI Task as it triggers every tick (60Hz)
+		stat = osMessageQueuePut(mUIQueue, &data, 0, 0);
+	}
+	if (USE_MQTT) {
+		// TODO implement MQTT Task
+		stat = osMessageQueuePut(mUartQueue, &data, 0, 0);
+
+		if (stat == osOK) {
+			notify_UartTask();
+		}
+	}
+	if (stat != osOK) {
+		__BKPT();
+	}
+	//	lastUISend = now;
+	//}
+}
+
+void SensorHandler::switchTo(SensorType type) {
+	if(sPending == type){return;}
+	if(is_adc_sensor(sPending) && is_adc_sensor(type)) { return; }
+	sPending = type;
+
+	if (!is_adc_sensor(type)) {
+		//Notify the adc task to stop
+		xTaskNotify(static_cast<TaskHandle_t>(adcSensorsTaskHandle),
+				ADC_STOP_FLAG, eSetBits);
+	} else if(type != MAX1030x) {
+		//Notify the MAX3010x task to stop
+		xTaskNotify(static_cast<TaskHandle_t>(sp02TaskHandle),
+				MAX3010x_STOP_FLAG, eSetBits);
+	}
+}
+void SensorHandler::onStopped() {
+	switch (sPending) {
+	case ADC_COMBINED:
+		//Resume the adc task
+		vTaskResume(static_cast<TaskHandle_t>(adcSensorsTaskHandle));
+		break;
+	case MAX1030x:
+		//Resume the MAX task
+		vTaskResume(static_cast<TaskHandle_t>(sp02TaskHandle));
+		break;
+	default:
+		break;
+	}
+}
+

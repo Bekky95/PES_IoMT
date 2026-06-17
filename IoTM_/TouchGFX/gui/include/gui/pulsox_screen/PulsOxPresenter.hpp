@@ -1,18 +1,17 @@
-#ifndef UIPRESENTER_HPP
-#define UIPRESENTER_HPP
+#ifndef PULSOXPRESENTER_HPP
+#define PULSOXPRESENTER_HPP
 
 #include <gui/model/ModelListener.hpp>
 #include <mvp/Presenter.hpp>
-#include <Config.h>
 
 using namespace touchgfx;
 
-class UIView;
+class PulsOxView;
 
-class UIPresenter : public touchgfx::Presenter, public ModelListener
+class PulsOxPresenter : public touchgfx::Presenter, public ModelListener
 {
 public:
-    UIPresenter(UIView& v);
+    PulsOxPresenter(PulsOxView& v);
 
     /**
      * The activate function is called automatically when this screen is "switched in"
@@ -26,18 +25,14 @@ public:
      */
     virtual void deactivate();
 
-    void onSensorUpdated(const SensorData& data) override;
-    void invalidateGraph() override;
+    void onMaxDataUpdated(const SensorData& data) override;
 
-    virtual ~UIPresenter() {}
+    virtual ~PulsOxPresenter() {}
 
 private:
-    UIPresenter();
+    PulsOxPresenter();
 
-    // The currrent sensor type
-    volatile SensorType currSensor;
-
-    UIView& view;
+    PulsOxView& view;
 };
 
-#endif // UIPRESENTER_HPP
+#endif // PULSOXPRESENTER_HPP

@@ -11,6 +11,8 @@ public:
     
     virtual ~ModelListener() {}
     virtual void onSensorUpdated(const SensorData& data) {};
+    virtual void onMaxDataUpdated(const SensorData& data) {};
+    virtual void invalidateGraph() {};
 
     void bind(Model* m)
     {

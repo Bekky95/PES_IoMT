@@ -14,32 +14,34 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
-#include "adcChannel.h"
+#include "Config.h"
+#include <cstring>
 
-// Forward declaration of AdcChannel class
-class AdcChannel;
+static const float VREF = 3.3f;
 
 class AdcDma {
 public:
-	friend class AdcChannel;
 
 	AdcDma(ADC_HandleTypeDef* hadc, uint8_t numChannels);
+    // Constructor — no hardware access, no assertions
+    AdcDma() : mHadc(nullptr), mNumChannels(0)
+    {
+        //memset(mDmaBuffer,    0, sizeof(mDmaBuffer));
+    }
 
 	HAL_StatusTypeDef start();
 	HAL_StatusTypeDef stop();
 
-	const uint32_t* getValues();
-	uint32_t getChannelValue(uint8_t ch) const;
+	uint16_t* getBuffer();
+	uint16_t getChannelValue(uint8_t ch) const;
+	float GetChValVolt(uint8_t ch) const;
 
-	AdcChannel* registerChannel(uint8_t ch) const;
 
 private:
 	ADC_HandleTypeDef*	mHadc;
 	uint8_t 			mNumChannels;
 
-	AdcChannel** 	    mAdcChannels;
-	uint32_t* 			mDmaBuffer;
-
+	uint16_t 			mDmaBuffer[ADC_CH_COUNT * ADC_BLOCK_SIZE];
 
 
 };

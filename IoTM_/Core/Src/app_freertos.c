@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : app_freertos.c
-  * Description        : Code for freertos applications
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : app_freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2023 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -24,16 +24,37 @@
 #include "cmsis_os2.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "SensorHandler/SensorHandlerConfig.h"
 #include "queue.h"
+#include "Config.h"
 extern ADC_HandleTypeDef hadc1;
 extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef huart2;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void SensorHandler_Start(SensorHandlerConfig* config, const osThreadAttr_t* attr);
+extern void SensorHandler_Start(SensorHandlerConfig *config,
+		const osThreadAttr_t *attr);
+
+// SP02 Task:
+extern osStatus_t sP02Init(SpO2Config cfg);
+extern void* PulsOxHandler_TaskEntry(void *arg);
+extern void* pulsOxHandlerGetInstance();
+void startSp02(void *argument);
+
+// ADC Task:
+extern osStatus_t adcInit(adcConfig cfg);
+extern void* adcHandlerGetInstance(void);
+extern void ADCHandler_TaskEntry(void *arg);
+void StartAdcSensors(void *argument);
+
+// UART <-> MQTT Task
+extern osStatus_t uartInit(uartConfig cfg);
+void StartUartTask(void *argument);
+extern void UartHandler_TaskEntry(void *arg);
+extern void* UartHandlerGetInstance(void);
+
 extern const QueueHandle_t getSensorQueue(void);
 #ifdef __cplusplus
 }
@@ -57,14 +78,42 @@ extern const QueueHandle_t getSensorQueue(void);
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-static QueueHandle_t uiQueue = NULL;
+
 /* Definitions for tSensorHandler */
 osThreadId_t tSensorHandlerHandle;
-const osThreadAttr_t tSensorHandler_attributes = {
-  .name = "tSensorHandler",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
-};
+const osThreadAttr_t tSensorHandler_attributes = { .name = "tSensorHandler",
+		.priority = (osPriority_t) osPriorityNormal, .stack_size = 1024 * 4 };
+
+/* Definitions for sp02Task */
+osThreadId_t sp02TaskHandle;
+const osThreadAttr_t sp02Task_attributes = { .name = "sp02Task", .priority =
+		(osPriority_t) osPriorityAboveNormal, .stack_size = 1024 * 4 };
+osMessageQueueId_t sp02_to_SensorHandlerHandle;
+const osMessageQueueAttr_t sp02_to_SensorHandler_attributes = { .name =
+		"sp02_SensorHandler_Queue" };
+
+/* Definitions for adcSensorsTask */
+osThreadId_t adcSensorsTaskHandle;
+const osThreadAttr_t adcSensorsTask_attributes = { .name = "adcSensorsTask",
+		.priority = (osPriority_t) osPriorityBelowNormal, .stack_size = 1024 * 4 };
+osMessageQueueId_t adc_to_SensorHandlerHandle;
+const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
+		"adc_SensorHandler_Queue" };
+
+/* Definitions for UART <-> MQTT task */
+osThreadId_t uartTask;
+const osThreadAttr_t uartTask_attributes = { .name = "uartTask", .priority =
+		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+osMessageQueueId_t sensorHandler_to_UartHandle;
+const osMessageQueueAttr_t sensorHandler_to_Uart_attributes = { .name =
+		"sensorHandler_to_Uart" };
+
+osMessageQueueId_t uiQueue;
+const osMessageQueueAttr_t uiQueueAttributes = { .name = "uiQueue" };
+/* Definitions for UIQueueSem */
+osSemaphoreId_t UIQueueSemHandle;
+const osSemaphoreAttr_t UIQueueSem_attributes = { .name = "UIQueueSem" };
+
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -80,15 +129,10 @@ const osThreadAttr_t GUI_Task_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 8192 * 4
 };
-/* Definitions for UIQueueSem */
-osSemaphoreId_t UIQueueSemHandle;
-const osSemaphoreAttr_t UIQueueSem_attributes = {
-  .name = "UIQueueSem"
-};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-extern portBASE_TYPE IdleTaskHook(void* p);
+extern portBASE_TYPE IdleTaskHook(void *p);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -98,23 +142,34 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* Hook prototypes */
 void vApplicationIdleHook(void);
+void vApplicationStackOverflowHook(xTaskHandle xTask, char *pcTaskName);
 
 /* USER CODE BEGIN 2 */
-void vApplicationIdleHook( void )
-{
-   /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
-   to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
-   task. It is essential that code added to this hook function never attempts
-   to block in any way (for example, call xQueueReceive() with a block time
-   specified, or call vTaskDelay()). If the application makes use of the
-   vTaskDelete() API function (as this demo application does) then it is also
-   important that vApplicationIdleHook() is permitted to return to its calling
-   function, because it is the responsibility of the idle task to clean up
-   memory allocated by the kernel to any task that has since been deleted. */
-  
-   vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
+void vApplicationIdleHook(void) {
+	/* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
+	 to 1 in FreeRTOSConfig.h. It will be called on each iteration of the idle
+	 task. It is essential that code added to this hook function never attempts
+	 to block in any way (for example, call xQueueReceive() with a block time
+	 specified, or call vTaskDelay()). If the application makes use of the
+	 vTaskDelete() API function (as this demo application does) then it is also
+	 important that vApplicationIdleHook() is permitted to return to its calling
+	 function, because it is the responsibility of the idle task to clean up
+	 memory allocated by the kernel to any task that has since been deleted. */
+
+	vTaskSetApplicationTaskTag(NULL, IdleTaskHook);
 }
 /* USER CODE END 2 */
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+    // Set a breakpoint here, or toggle a GPIO, or log
+    __BKPT(0);
+}
+/* USER CODE END 4 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -127,22 +182,20 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+	/* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-  /* creation of UIQueueSem */
-  UIQueueSemHandle = osSemaphoreNew(1, 1, &UIQueueSem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
+	/* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
+	/* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  uiQueue = xQueueCreate(1,sizeof(SensorData));
+	/* add queues, ... */
+	uiQueue = osMessageQueueNew(150, sizeof(SensorData), &uiQueueAttributes);
 
   /* USER CODE END RTOS_QUEUES */
   /* creation of defaultTask */
@@ -152,41 +205,89 @@ void MX_FREERTOS_Init(void) {
   GUI_TaskHandle = osThreadNew(TouchGFX_Task, NULL, &GUI_Task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-    SensorHandlerConfig config = {
-        .hadc = &hadc1,
-       .adcChannelCount = 1,
-        .hi2c = NULL,
-        .i2cAddress = 0x48,
-        .i2cReadBytes = 2,
-        .loopPeriodMs = 20,
-        .uiQueue = uiQueue,
-		.uiSem = UIQueueSemHandle,
-    };
 
-    SensorHandler_Start(&config, &tSensorHandler_attributes);
+	// Init and add SP02 sensor task
+	if (USE_SP02_SENSOR) {
+		sp02_to_SensorHandlerHandle = osMessageQueueNew(4,
+				sizeof(MAX3010x_Data), &sp02_to_SensorHandler_attributes);
+
+		SpO2Config sP02_Config;
+		sP02_Config.queue = sp02_to_SensorHandlerHandle;
+		sP02_Config.hi2c = &hi2c1;
+
+		if (sP02Init(sP02_Config) != osOK)
+			Error_Handler();
+
+		/* creation of sp02Task */
+		sp02TaskHandle = osThreadNew(startSp02, pulsOxHandlerGetInstance(),
+				&sp02Task_attributes);
+	}
+	// Init and add adc sensor task
+	if (USE_ADC_SENSORS) {
+		/* creation of adc_to_SensorHandler */
+		adc_to_SensorHandlerHandle = osMessageQueueNew(40, sizeof(SensorData),
+				&adc_to_SensorHandler_attributes);
+
+		adcConfig adc_Config;
+		adc_Config.queue = adc_to_SensorHandlerHandle;
+		adc_Config.adc = &hadc1;
+		adc_Config.adcChannelCount = ADC_CH_COUNT; //TODO set this based on config.h
+		//TODO adc is landing in error handler
+		osStatus_t stat = adcInit(adc_Config);
+		if (stat != osOK)
+			Error_Handler();
+
+		/* creation of adcSensorsTask */
+		adcSensorsTaskHandle = osThreadNew(StartAdcSensors,
+				adcHandlerGetInstance(), &adcSensorsTask_attributes);
+	}
+
+	if (USE_MQTT) {
+		sensorHandler_to_UartHandle = osMessageQueueNew(40, sizeof(SensorData),
+				&sensorHandler_to_Uart_attributes);
+		uartConfig uart_config;
+		uart_config.queue = sensorHandler_to_UartHandle;
+		uart_config.uart = &huart2;
+		osStatus_t stat = uartInit(uart_config);
+		//TODO: check if needed, scheduler should still start even without mqtt connection:
+		if (stat != osOK || sensorHandler_to_UartHandle == NULL) {
+			Error_Handler();
+		}
+
+		uartTask = osThreadNew(StartUartTask, UartHandlerGetInstance(),
+				&uartTask_attributes);
+
+	}
+
+	/* add threads, ... */
+	SensorHandlerConfig config = { .hadc = &hadc1, .adcChannelCount = 1, .hi2c =
+			&hi2c1, .uiQueue = uiQueue, .adcQueue = adc_to_SensorHandlerHandle,
+			.max3010xQueue = sp02_to_SensorHandlerHandle, .uartQueue =
+					sensorHandler_to_UartHandle, .uiSem = UIQueueSemHandle, };
+
+	SensorHandler_Start(&config, &tSensorHandler_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
+	/* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
 }
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-* @brief Function implementing the defaultTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the defaultTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN defaultTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+
+	/* Infinite loop */
+	for (;;) {
+		osDelay(1);
+	}
   /* USER CODE END defaultTask */
 }
 
@@ -194,6 +295,53 @@ void StartDefaultTask(void *argument)
 /* USER CODE BEGIN Application */
 QueueHandle_t getSensorQueue(void) {
 	return uiQueue;
+}
+/**
+ * @brief Function implementing the sp02Task thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_startSp02 */
+void startSp02(void *argument) {
+	/* USER CODE BEGIN sp02Task */
+	if (USE_SP02_SENSOR) {
+		PulsOxHandler_TaskEntry(argument);
+	}
+	/* Infinite loop */
+	for (;;) {
+		osDelay(1);
+	}
+	/* USER CODE END sp02Task */
+}
+
+/* USER CODE BEGIN Header_StartAdcSensors */
+/**
+ * @brief Function implementing the adcSensorsTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartAdcSensors */
+void StartAdcSensors(void *argument) {
+	/* USER CODE BEGIN adcSensorsTask */
+	/* Infinite loop */
+	if (USE_EEG_SENSOR || USE_EKG_SENSOR || USE_EMG_SENSOR) {
+		ADCHandler_TaskEntry(argument);
+	}
+	// Should never land here!!!
+	for (;;) {
+		osDelay(1);
+	}
+}
+
+// Entry for uart task
+void StartUartTask(void *argument) {
+	if (USE_MQTT) {
+		UartHandler_TaskEntry(argument);
+	}
+	// Should never land here!!!
+	for (;;) {
+		osDelay(1);
+	}
 }
 /* USER CODE END Application */
 
