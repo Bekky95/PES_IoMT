@@ -24,7 +24,7 @@ public:
 	MAX3010x() : mI2c(nullptr) {}
 	HAL_StatusTypeDef init(void);
 	void setup(uint8_t powerLevel = 0x1F, uint8_t sampleAverage = 4,
-			uint8_t ledMode = 7, uint16_t sampleRate = 400,
+			uint8_t ledMode = 7, int sampleRate = 400,
 			uint16_t pulseWidth = 411, uint16_t adcRange = 4096);
 
 	uint32_t getRed(void); //Returns immediate red value
@@ -109,7 +109,7 @@ private:
 	uint8_t revisionID;
 	void readRevisionID();
 
-#define STORAGE_SIZE 4 //Each long is 4 bytes so limit this to fit on your micro
+#define STORAGE_SIZE 16 //Each long is 4 bytes so limit this to fit on your micro
 	typedef struct Record {
 		uint32_t red[STORAGE_SIZE];
 		uint32_t IR[STORAGE_SIZE];
@@ -122,7 +122,7 @@ private:
 
 	// Low-Level read/write functions
 	uint8_t readRegister8(uint8_t addr);
-	HAL_StatusTypeDef writeRegister8(uint8_t addr, uint8_t data); // TODO: check if ack or the i2c returns something
+	HAL_StatusTypeDef writeRegister8(uint8_t addr, uint8_t data);
 	void bitMask(uint8_t reg, uint8_t mask, uint8_t thing);
 
 };

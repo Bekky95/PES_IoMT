@@ -203,6 +203,7 @@
       },
       {
         "Name": "PulsOx",
+        "CanvasBufferSize": 12000,
         "Components": [
           {
             "Type": "Image",
@@ -306,10 +307,9 @@
           {
             "Type": "Box",
             "Name": "box1",
-            "X": 125,
-            "Y": 145,
-            "Width": 412,
-            "Height": 95,
+            "X": 648,
+            "Width": 152,
+            "Height": 131,
             "Color": {
               "Red": 255,
               "Green": 255,
@@ -319,8 +319,8 @@
           {
             "Type": "TextArea",
             "Name": "pulsOxText",
-            "X": 137,
-            "Y": 158,
+            "X": 648,
+            "Y": 6,
             "Width": 152,
             "Height": 24,
             "TextId": "__SingleUse_WEZE",
@@ -335,9 +335,9 @@
           {
             "Type": "TextArea",
             "Name": "heartRateText",
-            "X": 136,
-            "Y": 182,
-            "Width": 319,
+            "X": 657,
+            "Y": 30,
+            "Width": 134,
             "Height": 48,
             "TextId": "__SingleUse_358M",
             "TextRotation": "0",
@@ -347,11 +347,71 @@
               "UseBuffer": true,
               "BufferSize": 12
             }
+          },
+          {
+            "Type": "DynamicGraph",
+            "Name": "irGraph",
+            "Width": 648,
+            "Height": 430,
+            "DataSeed": 693790172,
+            "NumberOfValues": 100,
+            "MaxY": 262143.0,
+            "Precision": "1",
+            "LastIndex": 99,
+            "XAxisScale": 1.0,
+            "GraphType": "GraphWrapClear",
+            "GraphDrawers": [
+              {
+                "Type": "LineDrawer",
+                "LineWidth": 2,
+                "FileNameImage": "",
+                "Color": {
+                  "Red": 20,
+                  "Green": 151,
+                  "Blue": 197
+                }
+              }
+            ]
+          },
+          {
+            "Type": "DynamicGraph",
+            "Name": "redGraph",
+            "Width": 648,
+            "Height": 430,
+            "DataSeed": 584401908,
+            "NumberOfValues": 100,
+            "MaxY": 262143.0,
+            "Precision": "1",
+            "LastIndex": 99,
+            "XAxisScale": 1.0,
+            "GraphType": "GraphWrapClear",
+            "GraphDrawers": [
+              {
+                "Type": "LineDrawer",
+                "LineWidth": 2,
+                "FileNameImage": "",
+                "Color": {
+                  "Red": 255
+                }
+              }
+            ]
+          },
+          {
+            "Type": "TextArea",
+            "Name": "fingerDetection",
+            "X": 667,
+            "Y": 78,
+            "Width": 115,
+            "Height": 48,
+            "TextId": "no_finger",
+            "TextRotation": "0",
+            "AutoSize": true
           }
         ],
         "Interactions": [
           {
             "InteractionName": "EMG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEMG"
@@ -364,6 +424,7 @@
           },
           {
             "InteractionName": "EEG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEEG"
@@ -376,6 +437,7 @@
           },
           {
             "InteractionName": "EKG_Switch",
+            "HasCompletedTrigger": true,
             "Trigger": {
               "Type": "TriggerClicked",
               "TriggerComponent": "bEKG"
@@ -384,6 +446,40 @@
               "Type": "ActionGotoScreen",
               "ScreenTransitionType": "ScreenTransitionNone",
               "ActionComponent": "UI"
+            }
+          },
+          {
+            "InteractionName": "Interaction1",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEMG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEMG_Clicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction2",
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEEG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEEG_Clicked"
+            }
+          },
+          {
+            "InteractionName": "Interaction3",
+            "HasCompletedTrigger": true,
+            "Trigger": {
+              "Type": "TriggerClicked",
+              "TriggerComponent": "bEKG"
+            },
+            "Action": {
+              "Type": "ActionCustom",
+              "FunctionName": "bEKG_Clicked"
             }
           }
         ]

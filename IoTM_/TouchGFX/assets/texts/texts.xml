@@ -6,6 +6,12 @@
   <Texts>
     <TextGroup Id="Group1" />
     <TextGroup Id="Unsorted">
+      <Text Id="no_finger" Alignment="Left" TypographyId="Default">
+        <Translation Language="GB">No Finger &#10;Detected</Translation>
+      </Text>
+      <Text Id="finger" Alignment="Center" TypographyId="Default">
+        <Translation Language="GB">Finger &#10;Detected</Translation>
+      </Text>
       <Text Id="bpm" Alignment="Left" TypographyId="Default">
         <Translation Language="GB">000</Translation>
       </Text>
@@ -19,7 +25,7 @@
         <Translation Language="GB">PulsOx</Translation>
       </Text>
       <Text Id="__SingleUse_358M" Alignment="Left" TypographyId="Default">
-        <Translation Language="GB">Heart Rate Estimate: &lt;value&gt; bpm&#10;</Translation>
+        <Translation Language="GB">HR: &lt;value&gt; bpm&#10;</Translation>
       </Text>
       <Text Id="__SingleUse_WEZE" Alignment="Left" TypographyId="Default">
         <Translation Language="GB">PulsOx: &lt;value&gt; %</Translation>

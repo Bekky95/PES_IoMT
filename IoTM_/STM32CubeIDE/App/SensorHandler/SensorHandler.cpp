@@ -8,7 +8,10 @@
 #include <SensorHandler/SensorHandler.h>
 extern uint8_t UI_READY;
 extern SensorType _activeType;
-//TODO maybe move
+// include the two data task handles to be able to pause/resume them
+extern osThreadId_t sp02TaskHandle;
+extern osThreadId_t adcSensorsTaskHandle;
+
 // Maps ADC buffer index → SensorType
 static const SensorType ADC_CHANNEL_TYPE[3] = { SensorType::EMG,
 		SensorType::EEG, SensorType::EKG, };
@@ -23,12 +26,12 @@ extern "C" void SensorHandler_Start(SensorHandlerConfig *config,
 	SensorHandler::start(config, attr);
 }
 
-extern "C" void SensorHandler_NotifyADC(BaseType_t* pxHigherPriorityTaskWoken) {
-    if (tSensorHandlerHandle != nullptr) {
-    	xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
-    }
+extern "C" void SensorHandler_NotifyADC(BaseType_t *pxHigherPriorityTaskWoken) {
+	if (tSensorHandlerHandle != nullptr) {
+		xTaskNotify(static_cast<TaskHandle_t>(tSensorHandlerHandle),
+				SENSOR_HANDLER_NOTIFYBITS_NEW_ADC_DATA, eSetBits);
+	}
 }
-
 
 extern "C" void SensorHandler_NotifyMAX() {
 	if (tSensorHandlerHandle != nullptr) {
@@ -70,7 +73,7 @@ void SensorHandler::init(const SensorHandlerConfig *config) {
 	mUIQueue = mConfig.uiQueue;
 	mAdcQueue = mConfig.adcQueue;
 	mMax3010xQueue = mConfig.max3010xQueue;
-	mUartQueue = (QueueHandle_t)mConfig.uartQueue;
+	mUartQueue = (QueueHandle_t) mConfig.uartQueue;
 	mUiSem = mConfig.uiSem;
 }
 
@@ -84,10 +87,6 @@ const SemaphoreHandle_t SensorHandler::getUiSemaphore(void) const {
 
 void SensorHandler::taskEntry(void *pv) {
 	static_cast<SensorHandler*>(pv)->taskLoop();
-}
-
-uint16_t SensorHandler::averageAdcData(AdcSnapshot data) {
-
 }
 
 void SensorHandler::taskLoop() {
@@ -169,5 +168,35 @@ void SensorHandler::publishToAll(SensorData data) {
 	}
 	//	lastUISend = now;
 	//}
-
 }
+
+void SensorHandler::switchTo(SensorType type) {
+	if(sPending == type){return;}
+	if(is_adc_sensor(sPending) && is_adc_sensor(type)) { return; }
+	sPending = type;
+
+	if (!is_adc_sensor(type)) {
+		//Notify the adc task to stop
+		xTaskNotify(static_cast<TaskHandle_t>(adcSensorsTaskHandle),
+				ADC_STOP_FLAG, eSetBits);
+	} else if(type != MAX1030x) {
+		//Notify the MAX3010x task to stop
+		xTaskNotify(static_cast<TaskHandle_t>(sp02TaskHandle),
+				MAX3010x_STOP_FLAG, eSetBits);
+	}
+}
+void SensorHandler::onStopped() {
+	switch (sPending) {
+	case ADC_COMBINED:
+		//Resume the adc task
+		vTaskResume(static_cast<TaskHandle_t>(adcSensorsTaskHandle));
+		break;
+	case MAX1030x:
+		//Resume the MAX task
+		vTaskResume(static_cast<TaskHandle_t>(sp02TaskHandle));
+		break;
+	default:
+		break;
+	}
+}
+

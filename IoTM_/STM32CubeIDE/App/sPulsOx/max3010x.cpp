@@ -408,7 +408,7 @@ uint8_t MAX3010x::getRevisionID() {
 // Sample rate = 50
 //Use the default setup if you are just getting started with the MAX30105 sensor
 void MAX3010x::setup(uint8_t powerLevel, uint8_t sampleAverage, uint8_t ledMode,
-		uint16_t sampleRate, uint16_t pulseWidth, uint16_t adcRange) {
+		int sampleRate, uint16_t pulseWidth, uint16_t adcRange) {
 	softReset(); //Reset all configuration, threshold, and data registers to POR values
 
 	//FIFO Configuration
@@ -501,8 +501,8 @@ void MAX3010x::setup(uint8_t powerLevel, uint8_t sampleAverage, uint8_t ledMode,
 
 	setPulseAmplitudeRed(powerLevel);
 	setPulseAmplitudeIR(powerLevel);
-	setPulseAmplitudeGreen(powerLevel);
-	setPulseAmplitudeProximity(powerLevel);
+	//setPulseAmplitudeGreen(powerLevel);
+	//setPulseAmplitudeProximity(powerLevel);
 	//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 	//Multi-LED Mode Configuration, Enable the reading of the three LEDs
@@ -711,5 +711,8 @@ void MAX3010x::bitMask(uint8_t reg, uint8_t mask, uint8_t thing) {
 
 	// Change contents
 	writeRegister8(reg, originalContents | thing);
+
+	uint8_t newContents = readRegister8(reg);
+
 }
 

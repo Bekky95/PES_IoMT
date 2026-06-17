@@ -60,18 +60,18 @@
 int16_t IR_AC_Max = 20;
 int16_t IR_AC_Min = -20;
 
-int16_t IR_AC_Signal_Current = 0;
-int16_t IR_AC_Signal_Previous;
-int16_t IR_AC_Signal_min = 0;
-int16_t IR_AC_Signal_max = 0;
-int16_t IR_Average_Estimated;
+static int16_t IR_AC_Signal_Current = 0;
+static int16_t IR_AC_Signal_Previous;
+static int16_t IR_AC_Signal_min = 0;
+static int16_t IR_AC_Signal_max = 0;
+static int16_t IR_Average_Estimated;
 
-int16_t positiveEdge = 0;
-int16_t negativeEdge = 0;
-int32_t ir_avg_reg = 0;
+static int16_t positiveEdge = 0;
+static int16_t negativeEdge = 0;
+static int32_t ir_avg_reg = 0;
 
-int16_t cbuf[32];
-uint8_t offset = 0;
+static int16_t cbuf[32];
+static uint8_t offset = 0;
 
 static const uint16_t FIRCoeffs[12] = {172, 321, 579, 927, 1360, 1858, 2390, 2916, 3391, 3768, 4012, 4096};
 
@@ -94,7 +94,7 @@ bool checkForBeat(int32_t sample)
   IR_AC_Signal_Current = lowPassFIRFilter(sample - IR_Average_Estimated);
 
   //  Detect positive zero crossing (rising edge)
-  if ((IR_AC_Signal_Previous < 0) & (IR_AC_Signal_Current >= 0))
+  if ((IR_AC_Signal_Previous < 0) && (IR_AC_Signal_Current >= 0))
   {
   
     IR_AC_Max = IR_AC_Signal_max; //Adjust our AC max and min
@@ -105,7 +105,7 @@ bool checkForBeat(int32_t sample)
     IR_AC_Signal_max = 0;
 
     //if ((IR_AC_Max - IR_AC_Min) > 100 & (IR_AC_Max - IR_AC_Min) < 1000)
-    if ((IR_AC_Max - IR_AC_Min) > 20 & (IR_AC_Max - IR_AC_Min) < 1000)
+    if ((IR_AC_Max - IR_AC_Min) > 20 && (IR_AC_Max - IR_AC_Min) < 1000)
     {
       //Heart beat!!!
       beatDetected = true;
@@ -113,7 +113,7 @@ bool checkForBeat(int32_t sample)
   }
 
   //  Detect negative zero crossing (falling edge)
-  if ((IR_AC_Signal_Previous > 0) & (IR_AC_Signal_Current <= 0))
+  if ((IR_AC_Signal_Previous > 0) && (IR_AC_Signal_Current <= 0))
   {
     positiveEdge = 0;
     negativeEdge = 1;
@@ -121,13 +121,13 @@ bool checkForBeat(int32_t sample)
   }
 
   //  Find Maximum value in positive cycle
-  if (positiveEdge & (IR_AC_Signal_Current > IR_AC_Signal_Previous))
+  if (positiveEdge && (IR_AC_Signal_Current > IR_AC_Signal_Previous))
   {
     IR_AC_Signal_max = IR_AC_Signal_Current;
   }
 
   //  Find Minimum value in negative cycle
-  if (negativeEdge & (IR_AC_Signal_Current < IR_AC_Signal_Previous))
+  if (negativeEdge && (IR_AC_Signal_Current < IR_AC_Signal_Previous))
   {
     IR_AC_Signal_min = IR_AC_Signal_Current;
   }
