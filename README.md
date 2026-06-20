@@ -7,6 +7,7 @@
     - [Shell Commands](#shell-commands)
     - [IDEs](#ides)
     - [Aufbau Hardware](#aufbau-hardware)
+    - [Dashboard](#dashboard)
 - [Notizen](#notizen)
 
 ## Handout
