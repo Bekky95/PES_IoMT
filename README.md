@@ -50,7 +50,7 @@ https://github.com/nopnop2002/esp-idf-uart2mqtt
 
 → WIFI, UART Einstellungen anpassen (SSID, Passwort, UART TX und RX Ports
 
-→ idf.py menuconfig, Anleitung in Repository, Expansion in VS Code ESP-IDF “Advanced” - “Classic Menuconfig” [siehe Issues]("https://github.com/Bekky95/PES_IoMT/issues/11")
+→ idf.py menuconfig, Anleitung in Repository, Expansion in VS Code ESP-IDF “Advanced” - “Classic Menuconfig” [siehe Issues](https://github.com/Bekky95/PES_IoMT/issues/11)
 
 → Speichern, Kompilieren, Flashen auf ESP32
 
