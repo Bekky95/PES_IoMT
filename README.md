@@ -22,11 +22,16 @@
 </th>
 <th style="text-align:left;">
 
-- STM-ADC1 → Sensor
-- STM-ADC2 → Sensor
-- STM-ADC4 → Sensor
-- STM-I²C → Sensor Pulsoximeter
-- STM-USART2 → ESP-UART2
+- 14-PC0 → SIG Pin EMG Sensor
+- CN7-A4 → VO Pin EEG Sensor
+- 8-PB1 → OUTPUT Pin EKG Sensor
+- I2C:
+    - CN4-D15 → SCL Pulsoximeter
+    - CN4-D14 → SDA Pulsoximeter
+- UART:
+    - CN6-TX/D1(STM32) →GPIO16 RX_2 (ESP32)
+    - CN6-RX/D0(STM32) → GPIO17 TX_2 (ESP32)
+
 </th>
 </tr>
 </table>
@@ -45,7 +50,7 @@ https://github.com/nopnop2002/esp-idf-uart2mqtt
 
 → WIFI, UART Einstellungen anpassen (SSID, Passwort, UART TX und RX Ports
 
-→ idf.py menuconfig, Anleitung in Repository, Expansion in VS Code ESP-IDF “Advanced” - “Classic Menuconfig” (siehe Issues)
+→ idf.py menuconfig, Anleitung in Repository, Expansion in VS Code ESP-IDF “Advanced” - “Classic Menuconfig” [siehe Issues]("https://github.com/Bekky95/PES_IoMT/issues/11")
 
 → Speichern, Kompilieren, Flashen auf ESP32
 
