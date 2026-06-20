@@ -70,6 +70,12 @@ ESP32 Anschluss (Abb. 3  Rot): Da der ESP32 für diesen Prototyp direkt über de
 <img src="./images/Hardware_Aufbau.png" width="600"> Abb.3
 
 
+### Dashboard
+https://light-osprey-3481.flowfuse.cloud/dashboard/page1 \
+→ voraussichtlich ab Juli 2026 offline, da sonst Gebühren fällig werden \
+→ export des Dashboards als json, liegt in [PES_IoMT Repository](./images/FlowFuse_flow_dashboard.json)
+
+
 ## Notizen
 
 Beim initialen push hab ich einfach mal alles hochgeladen
