@@ -59,34 +59,12 @@ void SensorHandler::start(SensorHandlerConfig *config,
 		return;
 	}
 
-<<<<<<< HEAD
-	  sInstance = new SensorHandler();
-	  sInstance->init(config);
-	  //TODO: Clean this up
-	  tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry,
-	                                     sInstance,
-	                                     attr);
-
-};
-
-void SensorHandler::init(const SensorHandlerConfig* config) {
-    mConfig = *config;
-    mRunning = true;
-
-    if (config->hadc) {
-        mAdc = new AdcDma(config->hadc, config->adcChannelCount);
-        mAdcChannel1 = mAdc->registerChannel(0);
-    }
-    mflags = osEventFlagsNew(nullptr);
-    mUIQueue = mConfig.uiQueue;
-    mUiSem = mConfig.uiSem;
-=======
 	sInstance = new SensorHandler();
 	sInstance->init(config);
-	//TODO: Clean this up
+
 	tSensorHandlerHandle = osThreadNew(SensorHandler::taskEntry, sInstance,
 			attr);
->>>>>>> b9f35f446a174841bda2b6b829967391a2bd082e
+
 }
 
 void SensorHandler::init(const SensorHandlerConfig *config) {

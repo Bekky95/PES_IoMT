@@ -148,11 +148,6 @@ void UartHandler::flushBatch(BatchBuffer *batch, uint8_t count, SensorType type,
 
 	const uint16_t frameLen = (uint16_t) (p - frame);
 
-	//TODO the dma transfer doesnt seem to trigger the callback which never releases the semaphore, fix if needed
-	//Aquire the Tx Semaphore
-//	xSemaphoreTake(mTxDoneSem, portMAX_DELAY);
-//	memcpy(sTxBuf, frame, frameLen);
-//	HAL_UART_Transmit_DMA(mUart, sTxBuf, frameLen);
 	/* Transmit — swap for HAL_UART_Transmit_DMA to stop blocking here */
 	HAL_UART_Transmit(mUart, frame, (uint16_t) (p - frame),
 	HAL_MAX_DELAY);

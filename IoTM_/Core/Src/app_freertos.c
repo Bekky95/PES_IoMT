@@ -103,7 +103,7 @@ const osMessageQueueAttr_t adc_to_SensorHandler_attributes = { .name =
 /* Definitions for UART <-> MQTT task */
 osThreadId_t uartTask;
 const osThreadAttr_t uartTask_attributes = { .name = "uartTask", .priority =
-		(osPriority_t) osPriorityNormal, .stack_size = 512 * 4 };
+		(osPriority_t) osPriorityNormal, .stack_size = 1024 * 4 };
 osMessageQueueId_t sensorHandler_to_UartHandle;
 const osMessageQueueAttr_t sensorHandler_to_Uart_attributes = { .name =
 		"sensorHandler_to_Uart" };
